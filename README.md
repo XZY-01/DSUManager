@@ -28,11 +28,11 @@
 |---|---|
 | ![](docs/screenshots/main-root.png) | ![](docs/screenshots/main-shizuku.png) |
 
-| 设置 | 安装成功（可手动保存日志） |
+| 设置 | 软件安装 |
 |---|---|
 | ![](docs/screenshots/settings.png) | ![](docs/screenshots/install-success.png) |
 
-| 原生安装（DSU Sideloader 方式） |
+| 原生安装 |
 |---|
 | ![](docs/screenshots/native-install.png) |
 
@@ -71,8 +71,8 @@
 ## 安装与使用
 
 ### 下载
-- 最新版本：见 [Releases](https://github.com/15189659138/DSUManager/releases/latest)
-- 历史版本：`apk/` 目录内含从 v1.0 到当前版本的全部 APK（也可在 [Releases](https://github.com/15189659138/DSUManager/releases) 中下载）
+- 最新版本：见 [发布](https://github.com/15189659138/DSUManager/releases/latest)
+- 历史版本：`apk/` 目录内含从 v1.0 到当前版本的全部 APK（也可在 [发布](https://github.com/15189659138/DSUManager/releases) 中下载）
 
 ### 要求
 - Android 11+，设备支持 DSU（动态分区）
