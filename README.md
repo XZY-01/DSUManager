@@ -28,9 +28,9 @@
 |---|---|
 | <img src="docs/screenshots/main-root.jpg" width="420"> | <img src="docs/screenshots/main-shizuku.jpg" width="420"> |
 
-| 原生安装（系统确认） | 软件安装（安装成功） |
+| 软件安装 | 原生安装 |
 |---|---|
-| <img src="docs/screenshots/native-install.jpg" width="420"> | <img src="docs/screenshots/install-success.jpg" width="420"> |
+| <img src="docs/screenshots/install-success.jpg" width="420"> | <img src="docs/screenshots/native-install.jpg" width="420"> |
 
 | 设置 | 更改主题色 |
 |---|---|
