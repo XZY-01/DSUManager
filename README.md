@@ -32,9 +32,9 @@
 |---|---|
 | <img src="docs/screenshots/native-install.jpg" width="420"> | <img src="docs/screenshots/install-success.jpg" width="420"> |
 
-| 设置 | &nbsp; |
+| 设置 | 更改主题色 |
 |---|---|
-| <img src="docs/screenshots/settings.jpg" width="420"> | &nbsp; |
+| <img src="docs/screenshots/settings.jpg" width="420"> | <img src="docs/screenshots/theme-color.jpg" width="420"> |
 
 ## 功能特性
 
