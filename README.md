@@ -46,6 +46,7 @@
   - **原生安装**：DSU Sideloader 方式——本地压缩为 `.img.gz`，再调起系统
     `com.android.dynsystem` 完成安装；**无 Root 时只需 Shizuku 授权**
   - ⚠️ **原生安装只能安装单个 system.img（单个 DSU 槽）；需要多 DSU 槽时必须使用 Root 的软件安装**
+- **原生安装自动清理**：调起系统 DSU 后轮询安装状态，安装完成自动删除 `Download/DSUManager/` 下的临时 `.img.gz`
 - **完整日志**：安装过程实时日志；成功/失败弹窗带原因；日志只在点“保存日志”时通过 SAF 导出，
   不会自动写入应用目录
 - **安装细节开关**：可关闭实时日志显示
@@ -97,6 +98,7 @@ sh -c 'am start-activity -n com.android.dynsystem/com.android.dynsystem.Verifica
   --el KEY_USERDATA_SIZE <bytes> --el KEY_SYSTEM_SIZE <bytes>'
 ```
 实际写入由系统 `com.android.dynsystem` 完成，因此 shell 身份（Shizuku）即可，无需 Root。
+安装完成后会自动删除 `Download/DSUManager/` 下的临时 `.img.gz` 压缩包。
 思路与 [DSU Sideloader](https://github.com/VegaBobo/DSU-Sideloader) 一致。
 
 > ⚠️ **限制**：原生安装一次只能安装一个 `system.img`，对应单个 DSU 槽，且槽名固定为系统分配的 `dsu`。
