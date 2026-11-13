@@ -409,7 +409,7 @@ public class MainActivity extends Activity {
             }
         }
 
-        TextView footer = text("DSU Manager v2.1.2　·　开发者：XZY / 大肥鱼", 11f, P.onSurfaceVariant, false);
+        TextView footer = text("DSU Manager v2.1.3　·　开发者：XZY / 大肥鱼", 11f, P.onSurfaceVariant, false);
         footer.setGravity(Gravity.CENTER);
         footer.setPadding(0, dp(14), 0, dp(8));
         bodyBox.addView(footer);
@@ -945,8 +945,7 @@ public class MainActivity extends Activity {
         AlertDialog dlg = new AlertDialog.Builder(this)
                 .setTitle("已调起系统 DSU 安装器")
                 .setMessage("请在系统弹出的「动态系统更新」确认框里点「安装」。"
-                        + "安装完成后可通过系统通知直接启动 DSU；回到本应用刷新即可看到新槽位。\n\n"
-                        + "该方式不需要 Root，只需 Shizuku 授权；安装完成后会自动删除临时压缩包。")
+                        + "安装完成后可通过系统通知直接启动 DSU；回到本应用刷新即可看到新槽位。")
                 .setPositiveButton("知道了", null)
                 .create();
         dlg.show();
@@ -971,7 +970,7 @@ public class MainActivity extends Activity {
         }
         boolean detail = AppPrefs.showInstallDetails(this);
         final InstallLogger log = new InstallLogger(this, slot);
-        log.add("=== DSU Manager 2.1.2 安装开始 ===");
+        log.add("=== DSU Manager 2.1.3 安装开始 ===");
         log.add("slot=" + slot + " userdata=" + DsuManager.fmtBytes(userdataBytes)
                 + " domain=" + AppPrefs.installDomain(this));
 
