@@ -28,13 +28,13 @@
 |---|---|
 | ![](docs/screenshots/main-root.jpg) | ![](docs/screenshots/main-shizuku.jpg) |
 
-| 设置 | 软件安装（安装成功） |
+| 原生安装（系统确认） | 软件安装（安装成功） |
 |---|---|
-| ![](docs/screenshots/settings.jpg) | ![](docs/screenshots/install-success.jpg) |
+| ![](docs/screenshots/native-install.jpg) | ![](docs/screenshots/install-success.jpg) |
 
-| 原生安装（系统确认） |
+| 设置 |
 |---|
-| ![](docs/screenshots/native-install.jpg) |
+| ![](docs/screenshots/settings.jpg) |
 
 ## 功能特性
 
