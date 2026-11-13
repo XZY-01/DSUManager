@@ -5,7 +5,7 @@ $bt = "$sdk\build-tools\36.0.0"
 $androidJar = "$sdk\platforms\android-37.0\android.jar"
 $proj = Split-Path -Parent $MyInvocation.MyCommand.Path
 $build = "$proj\build"
-$outApk = (Join-Path (Split-Path -Parent $proj) "apk") + "\DSUManager-v2.1.4.apk"
+$outApk = (Join-Path (Split-Path -Parent $proj) "apk") + "\DSUManager-v2.1.5.apk"
 
 New-Item -ItemType Directory -Force -Path "$build\gen", "$build\classes", "$build\dex" | Out-Null
 Remove-Item "$build\classes\*" -Recurse -Force -ErrorAction SilentlyContinue
@@ -17,7 +17,7 @@ Write-Host "== aapt2 compile =="
 if ($LASTEXITCODE -ne 0) { throw "aapt2 compile failed" }
 
 Write-Host "== aapt2 link =="
-& "$bt\aapt2.exe" link -o "$build\base.apk" -I "$androidJar" --manifest "$proj\AndroidManifest.xml" -R "$build\res.zip" --java "$build\gen" --min-sdk-version 30 --target-sdk-version 36 --version-code 29 --version-name 2.1.4 --auto-add-overlay
+& "$bt\aapt2.exe" link -o "$build\base.apk" -I "$androidJar" --manifest "$proj\AndroidManifest.xml" -R "$build\res.zip" --java "$build\gen" --min-sdk-version 30 --target-sdk-version 36 --version-code 30 --version-name 2.1.5 --auto-add-overlay
 if ($LASTEXITCODE -ne 0) { throw "aapt2 link failed" }
 
 Write-Host "== javac =="

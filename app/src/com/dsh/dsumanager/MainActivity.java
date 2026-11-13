@@ -408,7 +408,7 @@ public class MainActivity extends Activity {
             }
         }
 
-        TextView footer = text("DSU Manager v2.1.4　·　开发者：XZY / 大肥鱼", 11f, P.onSurfaceVariant, false);
+        TextView footer = text("DSU Manager v2.1.5　·　开发者：XZY / 大肥鱼", 11f, P.onSurfaceVariant, false);
         footer.setGravity(Gravity.CENTER);
         footer.setPadding(0, dp(14), 0, dp(8));
         bodyBox.addView(footer);
@@ -905,7 +905,7 @@ public class MainActivity extends Activity {
         }
         boolean detail = AppPrefs.showInstallDetails(this);
         final InstallLogger log = new InstallLogger(this, slot);
-        log.add("=== DSU Manager 2.1.4 安装开始 ===");
+        log.add("=== DSU Manager 2.1.5 安装开始 ===");
         log.add("slot=" + slot + " userdata=" + DsuManager.fmtBytes(userdataBytes)
                 + " domain=" + AppPrefs.installDomain(this));
 
@@ -969,6 +969,8 @@ public class MainActivity extends Activity {
                         log.add("shell: " + nr.shellOut.trim());
                     }
                     if (!nr.ok) throw new RuntimeException(nr.message);
+                    clearInstallCache();
+                    log.add("已清理安装缓存");
                     log.add("=== INSTALL_OK ===");
                     ui.post(() -> {
                         dlg.dismiss();
@@ -1012,6 +1014,8 @@ public class MainActivity extends Activity {
                         doneParts[0]++;
                     }
                 }
+                clearInstallCache();
+                log.add("已清理安装缓存");
                 log.add("=== INSTALL_OK ===");
                 ui.post(() -> {
                     dlg.dismiss();
@@ -1028,6 +1032,30 @@ public class MainActivity extends Activity {
                 });
             }
         });
+    }
+
+    /** 安装成功后清理本次安装产生的缓存（cache/images 下的 raw、解压、sparse 转换等临时文件）。 */
+    private void clearInstallCache() {
+        final int[] deleted = {0};
+        try {
+            File[] files = imageCache.listFiles();
+            if (files != null) {
+                for (File f : files) deleteRecursively(f, deleted);
+            }
+        } catch (Throwable ignored) {
+        }
+        android.util.Log.i("DSUAPP", "clearInstallCache deleted=" + deleted[0]);
+    }
+
+    private static void deleteRecursively(File f, int[] deleted) {
+        if (f == null) return;
+        if (f.isDirectory()) {
+            File[] children = f.listFiles();
+            if (children != null) {
+                for (File c : children) deleteRecursively(c, deleted);
+            }
+        }
+        if (f.delete()) deleted[0]++;
     }
 
     private long sumFolder(ArrayList<PartInput> parts) {
