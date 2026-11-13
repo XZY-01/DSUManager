@@ -26,15 +26,15 @@
 
 | 主界面（Root） | 主界面（Shizuku 免 Root） |
 |---|---|
-| ![](docs/screenshots/main-root.png) | ![](docs/screenshots/main-shizuku.png) |
+| ![](docs/screenshots/main-root.jpg) | ![](docs/screenshots/main-shizuku.jpg) |
 
-| 设置 | 软件安装 |
+| 设置 | 软件安装（安装成功） |
 |---|---|
-| ![](docs/screenshots/settings.png) | ![](docs/screenshots/install-success.png) |
+| ![](docs/screenshots/settings.jpg) | ![](docs/screenshots/install-success.jpg) |
 
-| 原生安装 |
+| 原生安装（系统确认） |
 |---|
-| ![](docs/screenshots/native-install.png) |
+| ![](docs/screenshots/native-install.jpg) |
 
 ## 功能特性
 
