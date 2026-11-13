@@ -22,23 +22,19 @@
 - 理论支持 Android 11 ~ 17（minSdk 30 / targetSdk 36）
 - 纯 Java + 原生 Android View（无 AndroidX / Compose），单 APK 约 360 KB
 
-## 截图
+## 界面
 
 | 主界面（Root） | 主界面（Shizuku 免 Root） |
 |---|---|
 | ![](docs/screenshots/main-root.png) | ![](docs/screenshots/main-shizuku.png) |
 
-| 槽位管理 | 设置 |
+| 设置 | 安装成功（可手动保存日志） |
 |---|---|
-| ![](docs/screenshots/slot-management.png) | ![](docs/screenshots/settings.png) |
+| ![](docs/screenshots/settings.png) | ![](docs/screenshots/install-success.png) |
 
-| 安装成功（可手动保存日志） | 原生安装（DSU Sideloader 方式） |
-|---|---|
-| ![](docs/screenshots/install-success.png) | ![](docs/screenshots/native-install.png) |
-
-| 关于 / 开发者 | 更新日志 |
-|---|---|
-| ![](docs/screenshots/about.png) | ![](docs/screenshots/changelog.png) |
+| 原生安装（DSU Sideloader 方式） |
+|---|
+| ![](docs/screenshots/native-install.png) |
 
 ## 功能特性
 
@@ -48,7 +44,8 @@
 - **两种安装域**
   - **软件安装**：`gsi_tool` 分段管道写入，兼容性好，**需要 Root**
   - **原生安装**：DSU Sideloader 方式——本地压缩为 `.img.gz`，再调起系统
-    `com.android.dynsystem` 完成安装；**无 Root 时只需 Shizuku 授权**（仅支持单个 `system.img`）
+    `com.android.dynsystem` 完成安装；**无 Root 时只需 Shizuku 授权**
+  - ⚠️ **原生安装只能安装单个 system.img（单个 DSU 槽）；需要多 DSU 槽时必须使用 Root 的软件安装**
 - **完整日志**：安装过程实时日志；成功/失败弹窗带原因；日志只在点“保存日志”时通过 SAF 导出，
   不会自动写入应用目录
 - **安装细节开关**：可关闭实时日志显示
@@ -79,7 +76,8 @@
 
 ### 要求
 - Android 11+，设备支持 DSU（动态分区）
-- Root（推荐，功能完整）或 [Shizuku](https://shizuku.rikka.app/)（免 Root 只读 + 原生安装）
+- Root（推荐，功能完整；**多 DSU 槽、super/整包、启停/删除槽都必须 Root**）
+  或 [Shizuku](https://shizuku.rikka.app/)（免 Root：只读查看槽位 + 原生安装单个 system.img）
 - 解锁 Bootloader（DSU 的常规要求）
 
 ### 快速开始
@@ -100,6 +98,9 @@ sh -c 'am start-activity -n com.android.dynsystem/com.android.dynsystem.Verifica
 ```
 实际写入由系统 `com.android.dynsystem` 完成，因此 shell 身份（Shizuku）即可，无需 Root。
 思路与 [DSU Sideloader](https://github.com/VegaBobo/DSU-Sideloader) 一致。
+
+> ⚠️ **限制**：原生安装一次只能安装一个 `system.img`，对应单个 DSU 槽，且槽名固定为系统分配的 `dsu`。
+> 如果你需要安装/管理**多个 DSU 槽**（或整包 ROM、super.img 多分区），必须使用 **Root + 软件安装**。
 
 ## 支持的格式
 
