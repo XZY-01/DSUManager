@@ -506,8 +506,8 @@ public class SettingsActivity extends Activity {
     private LinearLayout aboutCard() {
         LinearLayout c = card(P.surfaceContainer);
         c.addView(text("关于", 16f, P.onSurface, true));
-        c.addView(text("DSU Manager v2.1.1", 12f, P.onSurfaceVariant, false));
-        c.addView(settingRow("更新日志", "1.0 → 2.1.1", v -> showChangelog()));
+        c.addView(text("DSU Manager v2.1.2", 12f, P.onSurfaceVariant, false));
+        c.addView(settingRow("更新日志", "1.0 → 2.1.2", v -> showChangelog()));
         c.addView(devRow("XZY", "酷安主页", "https://www.coolapk.com/u/28096321", R.drawable.dev_xzy));
         c.addView(devRow("大肥鱼", "DeepSeek 官网", "https://www.deepseek.com/", R.drawable.dev_dfy));
         return c;
@@ -680,6 +680,8 @@ public class SettingsActivity extends Activity {
 
     private void showChangelog() {
         String text = "DSU Manager 更新日志\n\n"
+                + "2.1.2（2026-11）\n"
+                + "· 原生安装成功弹窗不再显示压缩包保存路径\n\n"
                 + "2.1.1（2026-11）\n"
                 + "· 原生安装完成后自动删除 Download/DSUManager 下的临时 .img.gz 压缩包\n\n"
                 + "2.1.0（2026-11）\n"

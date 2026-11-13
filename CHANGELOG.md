@@ -2,6 +2,10 @@
 
 本文件按版本倒序记录。每个版本的 APK 位于 `apk/` 目录，并对应 GitHub Releases。
 
+## v2.1.2（2026-11）
+- 原生安装成功弹窗不再显示压缩包保存路径
+- APK：`DSUManager-v2.1.2.apk`
+
 ## v2.1.1（2026-11）
 - 原生安装完成后自动删除 `Download/DSUManager/` 下的临时 `.img.gz` 压缩包
 - APK：`DSUManager-v2.1.1.apk`
