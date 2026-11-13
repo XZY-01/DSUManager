@@ -32,9 +32,9 @@
 |---|---|
 | ![](docs/screenshots/native-install.jpg) | ![](docs/screenshots/install-success.jpg) |
 
-| 设置 |
-|---|
-| ![](docs/screenshots/settings.jpg) |
+| 设置 | &nbsp; |
+|---|---|
+| ![](docs/screenshots/settings.jpg) | &nbsp; |
 
 ## 功能特性
 
