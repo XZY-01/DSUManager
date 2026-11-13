@@ -296,7 +296,6 @@ public class MainActivity extends Activity {
                 inDsu = fInDsu;
                 if (needRequest) ShizukuHelper.requestPermission(REQ_SHIZUKU);
                 refreshAsync();
-                maybeTestHook();
             });
         });
     }
@@ -409,7 +408,7 @@ public class MainActivity extends Activity {
             }
         }
 
-        TextView footer = text("DSU Manager v2.1.3　·　开发者：XZY / 大肥鱼", 11f, P.onSurfaceVariant, false);
+        TextView footer = text("DSU Manager v2.1.4　·　开发者：XZY / 大肥鱼", 11f, P.onSurfaceVariant, false);
         footer.setGravity(Gravity.CENTER);
         footer.setPadding(0, dp(14), 0, dp(8));
         bodyBox.addView(footer);
@@ -606,70 +605,6 @@ public class MainActivity extends Activity {
             });
         }));
         dlg.show();
-    }
-
-    // ---------------- 隐藏测试入口（adb 调试用） ----------------
-
-    private boolean testConsumed = false;
-
-    private void maybeTestHook() {
-        if (testConsumed) return;
-        if (getIntent().getBooleanExtra("test_install_generated", false)) {
-            testConsumed = true;
-            try {
-                File f = new File(getCacheDir(), "gen_test.img");
-                if (!f.exists()) {
-                    FileOutputStream o = new FileOutputStream(f);
-                    byte[] b = new byte[1024 * 1024];
-                    for (int i = 0; i < 8; i++) o.write(b);
-                    o.close();
-                }
-                analyzeFile(f, getIntent().getBooleanExtra("test_auto", false));
-            } catch (Throwable t) {
-                toast("生成测试镜像失败："+ t.getMessage());
-            }
-            return;
-        }
-        String path = getIntent().getStringExtra("test_install_file");
-        android.util.Log.i("DSUAPP", "maybeTestHook path=" + path + " consumed=" + testConsumed);
-        if (path == null || path.isEmpty()) return;
-        File f = new File(path);
-        android.util.Log.i("DSUAPP", "test file exists=" + f.exists() + " len=" + f.length());
-        if (!f.exists()) {
-            toast("测试文件不存在：" + path);
-            return;
-        }
-        testConsumed = true;
-        analyzeFile(f, getIntent().getBooleanExtra("test_auto", false));
-    }
-
-    private void analyzeFile(File f, boolean auto) {
-        android.util.Log.i("DSUAPP", "analyzeFile auto=" + auto + " " + f.getAbsolutePath());
-        AlertDialog dlg = progressDialog("正在分析安装包", false);
-        io.execute(() -> {
-            ImageFormatDetector.Plan plan;
-            try (InputStream in = new FileInputStream(f)) {
-                plan = ImageFormatDetector.prepare(in, f.length(), imageCache, s -> { });
-            } catch (Throwable t) {
-                plan = new ImageFormatDetector.Plan();
-                plan.error = "读取失败："+ t.getMessage();
-            }
-            final ImageFormatDetector.Plan fp = plan;
-            ui.post(() -> {
-                dlg.dismiss();
-                if (fp.error != null && !fp.error.isEmpty()) {
-                    showFailureDialog("解析安装包失败", fp.error, null, null);
-                    return;
-                }
-                pendingPlan = fp;
-                pendingFolder.clear();
-                if (auto) {
-                    startInstall(DsuManager.guessNewSlot(state), 1024L * 1024L * 1024L);
-                } else {
-                    showPlanDialog("镜像安装："+ fp.label, planSummary(fp), fp.totalBytes);
-                }
-            });
-        });
     }
 
     // ---------------- 安装 ----------------
@@ -970,7 +905,7 @@ public class MainActivity extends Activity {
         }
         boolean detail = AppPrefs.showInstallDetails(this);
         final InstallLogger log = new InstallLogger(this, slot);
-        log.add("=== DSU Manager 2.1.3 安装开始 ===");
+        log.add("=== DSU Manager 2.1.4 安装开始 ===");
         log.add("slot=" + slot + " userdata=" + DsuManager.fmtBytes(userdataBytes)
                 + " domain=" + AppPrefs.installDomain(this));
 

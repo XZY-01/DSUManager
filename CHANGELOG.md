@@ -2,6 +2,10 @@
 
 本文件按版本倒序记录。每个版本的 APK 位于 `apk/` 目录，并对应 GitHub Releases。
 
+## v2.1.4（2026-11）
+- 修复更改主题色后自动安装测试镜像的问题（移除隐藏测试入口）
+- APK：`DSUManager-v2.1.4.apk`
+
 ## v2.1.3（2026-11）
 - 原生安装弹窗移除“无需 Root / Shizuku 授权”说明文字
 - APK：`DSUManager-v2.1.3.apk`
