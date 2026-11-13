@@ -74,6 +74,7 @@
 ### 下载
 - 最新版本：见 [发布](https://github.com/15189659138/DSUManager/releases/latest)
 - 历史版本：`apk/` 目录内含从 v1.0 到当前版本的全部 APK（也可在 [发布](https://github.com/15189659138/DSUManager/releases) 中下载）
+- 123盘（不常更新）：https://4000162266.share.123pan.cn/123pan/46pUMh-Mps6v?pwd=9rDr#
 
 ### 要求
 - Android 11+，设备支持 DSU（动态分区）
