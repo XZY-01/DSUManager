@@ -409,7 +409,7 @@ public class MainActivity extends Activity {
             }
         }
 
-        TextView footer = text("DSU Manager v2.1.7　·　开发者：XZY / 大肥鱼", 11f, P.onSurfaceVariant, false);
+        TextView footer = text("DSU Manager v2.1.8　·　开发者：XZY / 大肥鱼", 11f, P.onSurfaceVariant, false);
         footer.setGravity(Gravity.CENTER);
         footer.setPadding(0, dp(14), 0, dp(8));
         bodyBox.addView(footer);
@@ -728,8 +728,12 @@ public class MainActivity extends Activity {
                     showFailureDialog("解析安装包失败", fp.error, logs, null);
                     return;
                 }
-                if (fp.rawFile == null) {
-                    showFailureDialog("没有可安装的镜像", "请选择 system.img / super.img / 含镜像的 zip/tar", logs, null);
+                boolean planOk = fp.rawFile != null
+                        || fp.kind == ImageFormatDetector.KIND_SUPER
+                        || (fp.kind == ImageFormatDetector.KIND_MULTI && !fp.partFiles.isEmpty());
+                if (!planOk) {
+                    showFailureDialog("没有可安装的镜像",
+                            "请选择 system.img / super.img / 含分区镜像的 zip/tar", logs, null);
                     return;
                 }
                 pendingPlan = fp;
@@ -808,6 +812,21 @@ public class MainActivity extends Activity {
         if (p.kind == ImageFormatDetector.KIND_SINGLE) {
             return "检测到单系统镜像\n大小："+ DsuManager.fmtBytes(p.totalBytes)
                     + "\n将作为 system 分区安装。";
+        }
+        if (p.kind == ImageFormatDetector.KIND_MULTI) {
+            StringBuilder sb = new StringBuilder("检测到 " + p.partFiles.size() + " 个分区镜像：\n");
+            int shown = 0;
+            long total = 0;
+            for (ImageFormatDetector.PartFile pf : p.partFiles) {
+                total += pf.size;
+                if (shown++ < 8) {
+                    sb.append("  · ").append(pf.name).append("：")
+                            .append(DsuManager.fmtBytes(pf.size)).append('\n');
+                }
+            }
+            if (p.partFiles.size() > 8) sb.append("　· 分区 ").append(p.partFiles.size()).append(" 个\n");
+            sb.append("合计：").append(DsuManager.fmtBytes(total));
+            return sb.toString();
         }
         StringBuilder sb = new StringBuilder("检测到 " + p.partitions.size() + " 个分区：\n");
         int shown = 0;
@@ -907,7 +926,7 @@ public class MainActivity extends Activity {
         }
         boolean detail = AppPrefs.showInstallDetails(this);
         final InstallLogger log = new InstallLogger(this, slot);
-        log.add("=== DSU Manager 2.1.7 安装开始 ===");
+        log.add("=== DSU Manager 2.1.8 安装开始 ===");
         log.add("slot=" + slot + " userdata=" + DsuManager.fmtBytes(userdataBytes)
                 + " domain=" + AppPrefs.installDomain(this));
 
@@ -941,8 +960,11 @@ public class MainActivity extends Activity {
         final ArrayList<PartInput> folder = new ArrayList<>(pendingFolder);
 
         io.execute(() -> {
-            int parts = plan != null ? (plan.kind == ImageFormatDetector.KIND_SUPER
-                    ? plan.partitions.size() : 1) : folder.size();
+            int parts = plan != null
+                    ? (plan.kind == ImageFormatDetector.KIND_SUPER
+                        ? plan.partitions.size()
+                        : (plan.kind == ImageFormatDetector.KIND_MULTI ? plan.partFiles.size() : 1))
+                    : folder.size();
             final int[] doneParts = {0};
             final long totalBytes = plan != null ? plan.totalBytes : sumFolder(folder);
             final long[] doneBytes = {0};
@@ -982,7 +1004,8 @@ public class MainActivity extends Activity {
                     return;
                 }
                 if (plan != null) {
-                    log.add("plan=" + plan.label + " raw=" + plan.rawFile.getName()
+                    log.add("plan=" + plan.label + " file="
+                            + (plan.rawFile != null ? plan.rawFile.getName() : "-")
                             + " size=" + DsuManager.fmtBytes(plan.size));
                     if (plan.kind == ImageFormatDetector.KIND_SINGLE) {
                         try (InputStream sysIn = new FileInputStream(plan.rawFile)) {
@@ -990,6 +1013,18 @@ public class MainActivity extends Activity {
                                     log, status, bar, fLogView, doneBytes, totalBytes, actual -> {
                                 log.add("system 写入完成");
                             });
+                        }
+                    } else if (plan.kind == ImageFormatDetector.KIND_MULTI) {
+                        for (ImageFormatDetector.PartFile pf : plan.partFiles) {
+                            log.add("安装分区 " + pf.name + "（" + DsuManager.fmtBytes(pf.size) + "）");
+                            ui.post(() -> status.setText("安装 " + pf.name
+                                    + "（" + (doneParts[0] + 1) + "/" + parts + "）"));
+                            try (InputStream in = new FileInputStream(pf.file)) {
+                                installOne(slot, pf.name, in, pf.size, userdataBytes,
+                                        "system".equals(pf.name) && doneParts[0] == 0,
+                                        log, status, bar, fLogView, doneBytes, totalBytes, null);
+                            }
+                            doneParts[0]++;
                         }
                     } else {
                         for (SuperImage.Partition sp : plan.partitions) {

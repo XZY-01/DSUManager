@@ -27,6 +27,13 @@ public final class ImageFormatDetector {
     public static final int KIND_SINGLE = 1;
     public static final int KIND_SUPER = 2;
     public static final int KIND_FOLDER = 3;
+    public static final int KIND_MULTI = 4;   // zip/tar 里存在多个独立分区镜像
+
+    public static final class PartFile {
+        public String name;
+        public File file;
+        public long size;
+    }
 
     public static final class Plan {
         public int kind;
@@ -35,8 +42,31 @@ public final class ImageFormatDetector {
         public long size;
         public SuperImage.Info superInfo;
         public final ArrayList<SuperImage.Partition> partitions = new ArrayList<>();
+        public final ArrayList<PartFile> partFiles = new ArrayList<>();
         public long totalBytes;
         public String error = "";
+    }
+
+    private static final String[] PARTITION_NAMES = {
+            "system", "system_ext", "product", "vendor", "odm",
+            "vendor_dlkm", "system_dlkm", "mi_ext"
+    };
+
+    /** 从 zip/tar 条目名识别分区名；无法识别返回 null。super.img 返回 "super"。 */
+    private static String partitionNameFromEntry(String rawName) {
+        if (rawName == null) return null;
+        String name = rawName.replace('\\', '/');
+        int slash = name.lastIndexOf('/');
+        if (slash >= 0) name = name.substring(slash + 1);
+        String lower = name.toLowerCase();
+        if (!lower.endsWith(".img")) return null;
+        String base = lower.substring(0, lower.length() - 4);
+        if (base.equals("super") || base.startsWith("super_")) return "super";
+        if (base.endsWith("_a") || base.endsWith("_b")) base = base.substring(0, base.length() - 2);
+        for (String p : PARTITION_NAMES) {
+            if (base.equals(p)) return p;
+        }
+        return null;
     }
 
     public static Plan prepare(InputStream in, long declaredSize, File cacheDir, LogSink log) {
@@ -52,16 +82,40 @@ public final class ImageFormatDetector {
                 log.log("检测格式：" + kind + "（" + DsuManager.fmtBytes(cur.length()) + "）");
                 switch (kind) {
                     case "zip": {
-                        File out = extractArchive(cur, cacheDir, true, log);
-                        if (out == null) { p.error = "压缩包里没有找到 super.img / system.img"; return p; }
-                        cur = out;
-                        continue;
+                        ArrayList<PartFile> parts = extractArchiveMulti(cur, cacheDir, true, log);
+                        if (parts.isEmpty()) {
+                            p.error = "压缩包里没有找到 super.img 或分区镜像（system/vendor/product…）";
+                            return p;
+                        }
+                        PartFile superFile = findSuper(parts);
+                        if (superFile != null) {
+                            cur = superFile.file;
+                            continue;
+                        }
+                        if (parts.size() == 1) {
+                            cur = parts.get(0).file;
+                            continue;
+                        }
+                        fillMulti(p, parts);
+                        return p;
                     }
                     case "tar": {
-                        File out = extractArchive(cur, cacheDir, false, log);
-                        if (out == null) { p.error = "tar 里没有找到 super.img / system.img"; return p; }
-                        cur = out;
-                        continue;
+                        ArrayList<PartFile> parts = extractArchiveMulti(cur, cacheDir, false, log);
+                        if (parts.isEmpty()) {
+                            p.error = "tar 里没有找到 super.img 或分区镜像（system/vendor/product…）";
+                            return p;
+                        }
+                        PartFile superFile = findSuper(parts);
+                        if (superFile != null) {
+                            cur = superFile.file;
+                            continue;
+                        }
+                        if (parts.size() == 1) {
+                            cur = parts.get(0).file;
+                            continue;
+                        }
+                        fillMulti(p, parts);
+                        return p;
                     }
                     case "gz": {
                         cur = gunzip(cur, cacheDir, log);
@@ -165,29 +219,71 @@ public final class ImageFormatDetector {
 
     // ---------------- zip / tar ----------------
 
-    private static File extractArchive(File src, File cacheDir, boolean zip, LogSink log) throws IOException {
-        File out = new File(cacheDir, "extract_" + System.currentTimeMillis() + ".img");
-        if (zip) return extractZip(src, out, log);
-        return extractTar(src, out, log);
-    }
-
-    private static File extractZip(File src, File out, LogSink log) throws IOException {
-        try (ZipInputStream zin = new ZipInputStream(new FileInputStream(src))) {
-            ZipEntry e;
-            while ((e = zin.getNextEntry()) != null) {
-                String name = e.getName();
-                if (!isImageEntry(name)) continue;
-                if (copyTo(zin, out) > 0) {
-                    log.log("从 zip 提取：" + name);
-                    return out;
-                }
-            }
+    private static PartFile findSuper(ArrayList<PartFile> parts) {
+        for (PartFile pf : parts) {
+            if ("super".equals(pf.name)) return pf;
         }
         return null;
     }
 
-    /** 基础 tar 解析（ustar/GNU longname 支持），提取第一个 img。 */
-    private static File extractTar(File src, File out, LogSink log) throws IOException {
+    private static void fillMulti(Plan p, ArrayList<PartFile> parts) {
+        parts.sort((a, b) -> {
+            int wa = "system".equals(a.name) ? 0 : 1;
+            int wb = "system".equals(b.name) ? 0 : 1;
+            if (wa != wb) return wa - wb;
+            return a.name.compareTo(b.name);
+        });
+        p.kind = KIND_MULTI;
+        p.partFiles.addAll(parts);
+        long total = 0;
+        for (PartFile pf : parts) total += pf.size;
+        p.totalBytes = total;
+        p.size = total;
+        p.label = "多分区镜像（" + parts.size() + " 个分区）";
+    }
+
+    private static ArrayList<PartFile> extractArchiveMulti(File src, File cacheDir, boolean zip,
+                                                           LogSink log) throws IOException {
+        ArrayList<PartFile> out = new ArrayList<>();
+        if (zip) extractZipMulti(src, cacheDir, out, log);
+        else extractTarMulti(src, cacheDir, out, log);
+        return out;
+    }
+
+    private static File cacheFile(File cacheDir, String name) {
+        return new File(cacheDir, "extract_" + name + "_" + System.currentTimeMillis() + ".img");
+    }
+
+    private static void extractZipMulti(File src, File cacheDir, ArrayList<PartFile> out,
+                                        LogSink log) throws IOException {
+        java.util.HashSet<String> seen = new java.util.HashSet<>();
+        try (ZipInputStream zin = new ZipInputStream(new FileInputStream(src))) {
+            ZipEntry e;
+            while ((e = zin.getNextEntry()) != null) {
+                String part = partitionNameFromEntry(e.getName());
+                if (part == null || !seen.add(part)) continue;
+                File f = cacheFile(cacheDir, part);
+                long n = copyTo(zin, f);
+                if (n <= 0) {
+                    //noinspection ResultOfMethodCallIgnored
+                    f.delete();
+                    continue;
+                }
+                PartFile pf = new PartFile();
+                pf.name = part;
+                pf.file = f;
+                pf.size = n;
+                out.add(pf);
+                log.log("从 zip 提取分区：" + part + "（" + DsuManager.fmtBytes(n) + "）");
+                if ("super".equals(part)) return; // super.img 包含全部分区，无需继续
+            }
+        }
+    }
+
+    /** 基础 tar 解析（ustar/GNU longname 支持）。 */
+    private static void extractTarMulti(File src, File cacheDir, ArrayList<PartFile> out,
+                                        LogSink log) throws IOException {
+        java.util.HashSet<String> seen = new java.util.HashSet<>();
         try (RandomAccessFile raf = new RandomAccessFile(src, "r")) {
             long len = raf.length();
             long pos = 0;
@@ -211,32 +307,33 @@ public final class ImageFormatDetector {
                     longName = new String(nm, "UTF-8").split("\0")[0];
                 } else if (type == 'x' || type == 'g') {
                     // pax 头：忽略
-                } else if (isImageEntry(name)) {
-                    try (FileOutputStream fos = new FileOutputStream(out)) {
-                        raf.seek(dataPos);
-                        byte[] buf = new byte[256 * 1024];
-                        long left = size;
-                        while (left > 0) {
-                            int n = raf.read(buf, 0, (int) Math.min(buf.length, left));
-                            if (n <= 0) break;
-                            fos.write(buf, 0, n);
-                            left -= n;
+                } else {
+                    String part = partitionNameFromEntry(name);
+                    if (part != null && seen.add(part)) {
+                        File f = cacheFile(cacheDir, part);
+                        try (FileOutputStream fos = new FileOutputStream(f)) {
+                            raf.seek(dataPos);
+                            byte[] buf = new byte[256 * 1024];
+                            long left = size;
+                            while (left > 0) {
+                                int n = raf.read(buf, 0, (int) Math.min(buf.length, left));
+                                if (n <= 0) break;
+                                fos.write(buf, 0, n);
+                                left -= n;
+                            }
                         }
+                        PartFile pf = new PartFile();
+                        pf.name = part;
+                        pf.file = f;
+                        pf.size = f.length();
+                        out.add(pf);
+                        log.log("从 tar 提取分区：" + part + "（" + DsuManager.fmtBytes(pf.size) + "）");
+                        if ("super".equals(part)) return;
                     }
-                    log.log("从 tar 提取：" + name);
-                    return out;
                 }
                 pos = dataPos + ((size + 511) / 512) * 512;
             }
         }
-        return null;
-    }
-
-    private static boolean isImageEntry(String name) {
-        String n = name.toLowerCase();
-        if (!n.endsWith(".img")) return false;
-        String base = n.substring(n.lastIndexOf('/') + 1);
-        return base.contains("super") || base.contains("system");
     }
 
     private static long parseOctal(byte[] b, int off, int len) {

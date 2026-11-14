@@ -506,8 +506,8 @@ public class SettingsActivity extends Activity {
     private LinearLayout aboutCard() {
         LinearLayout c = card(P.surfaceContainer);
         c.addView(text("关于", 16f, P.onSurface, true));
-        c.addView(text("DSU Manager v2.1.7", 12f, P.onSurfaceVariant, false));
-        c.addView(settingRow("更新日志", "1.0 → 2.1.7", v -> showChangelog()));
+        c.addView(text("DSU Manager v2.1.8", 12f, P.onSurfaceVariant, false));
+        c.addView(settingRow("更新日志", "1.0 → 2.1.8", v -> showChangelog()));
         c.addView(devRow("XZY", "酷安主页", "https://www.coolapk.com/u/28096321", R.drawable.dev_xzy));
         c.addView(devRow("大肥鱼", "DeepSeek 官网", "https://www.deepseek.com/", R.drawable.dev_dfy));
         return c;
@@ -680,6 +680,9 @@ public class SettingsActivity extends Activity {
 
     private void showChangelog() {
         String text = "DSU Manager 更新日志\n\n"
+                + "2.1.8（2026-11）\n"
+                + "· 修复 zip/tar 只能识别 system 分区：现在支持多分区镜像（system/vendor/product…）\n"
+                + "· 压缩包内含 super.img 时自动按 super 安装；含多个分区镜像时逐分区安装\n\n"
                 + "2.1.7（2026-11）\n"
                 + "· 修复「无论选哪种安装方式都走原生安装」：软件安装与原生安装恢复各自动作\n"
                 + "· 软件安装失败时提供「改用原生安装」重试按钮（单个 system.img）\n\n"

@@ -2,6 +2,12 @@
 
 本文件按版本倒序记录。每个版本的 APK 位于 `apk/` 目录，并对应 GitHub Releases。
 
+## v2.1.8（2026-11）
+- 修复 zip/tar 只能识别 system 分区的问题：现在支持压缩包内的多分区镜像
+  （system / system_ext / product / vendor / odm / vendor_dlkm / system_dlkm / mi_ext）
+- 压缩包内含 super.img 时自动按 super 安装；含多个分区镜像时逐分区安装
+- APK：`DSUManager-v2.1.8.apk`
+
 ## v2.1.7（2026-11）
 - 修复「无论选哪种安装方式都走原生安装」：软件安装与原生安装恢复各自动作
 - 软件安装失败时提供「改用原生安装」重试按钮（仅单个 system.img）
