@@ -506,8 +506,8 @@ public class SettingsActivity extends Activity {
     private LinearLayout aboutCard() {
         LinearLayout c = card(P.surfaceContainer);
         c.addView(text("关于", 16f, P.onSurface, true));
-        c.addView(text("DSU Manager v2.1.5", 12f, P.onSurfaceVariant, false));
-        c.addView(settingRow("更新日志", "1.0 → 2.1.5", v -> showChangelog()));
+        c.addView(text("DSU Manager v2.1.6", 12f, P.onSurfaceVariant, false));
+        c.addView(settingRow("更新日志", "1.0 → 2.1.6", v -> showChangelog()));
         c.addView(devRow("XZY", "酷安主页", "https://www.coolapk.com/u/28096321", R.drawable.dev_xzy));
         c.addView(devRow("大肥鱼", "DeepSeek 官网", "https://www.deepseek.com/", R.drawable.dev_dfy));
         return c;
@@ -663,7 +663,7 @@ public class SettingsActivity extends Activity {
 
     private void showDomainDialog() {
         String[] items = {
-                "软件安装（gsi_tool 分段管道写入，需要 Root）",
+                "软件安装（super / 整包多分区，需要 Root）",
                 "原生安装（DSU Sideloader 方式，Shizuku 免 Root，仅单 system.img）"
         };
         int cur = "native".equals(AppPrefs.installDomain(this)) ? 1 : 0;
@@ -680,6 +680,9 @@ public class SettingsActivity extends Activity {
 
     private void showChangelog() {
         String text = "DSU Manager 更新日志\n\n"
+                + "2.1.6（2026-11）\n"
+                + "· 修复单个 system.img 软件安装失败：自动改用系统 DSU 安装器\n"
+                + "· 软件安装仅用于 super.img / 整包多分区；无 Root 也可安装单个 system.img\n\n"
                 + "2.1.5（2026-11）\n"
                 + "· 安装成功后自动清理安装缓存（原生安装与软件安装均适用）\n\n"
                 + "2.1.4（2026-11）\n"

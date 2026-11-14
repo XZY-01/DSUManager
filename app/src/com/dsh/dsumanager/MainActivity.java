@@ -408,12 +408,12 @@ public class MainActivity extends Activity {
             }
         }
 
-        TextView footer = text("DSU Manager v2.1.5　·　开发者：XZY / 大肥鱼", 11f, P.onSurfaceVariant, false);
+        TextView footer = text("DSU Manager v2.1.6　·　开发者：XZY / 大肥鱼", 11f, P.onSurfaceVariant, false);
         footer.setGravity(Gravity.CENTER);
         footer.setPadding(0, dp(14), 0, dp(8));
         bodyBox.addView(footer);
 
-        fab.setVisibility(rootMode || (shizukuMode && nativeDomain()) ? View.VISIBLE : View.GONE);
+        fab.setVisibility(rootMode || shizukuMode ? View.VISIBLE : View.GONE);
     }
 
     private View mainSystemCard() {
@@ -610,9 +610,9 @@ public class MainActivity extends Activity {
     // ---------------- 安装 ----------------
 
     private void showInstallChooser() {
-        boolean nativeOk = nativeDomain() && ShizukuHelper.hasPermission();
-        if (!rootMode && !nativeOk) {
-            toast("需要 Root；或开启无 Root 模式、授权 Shizuku，并把安装域设为「原生安装」");
+        boolean shizukuOk = shizukuMode && ShizukuHelper.hasPermission();
+        if (!rootMode && !shizukuOk) {
+            toast("需要 Root；或开启无 Root 模式并授权 Shizuku（仅支持单个 system.img）");
             return;
         }
         String[] items;
@@ -849,7 +849,7 @@ public class MainActivity extends Activity {
         box.addView(gbIn);
         TextView hint = text("安装域：" + ("native".equals(AppPrefs.installDomain(this))
                 ? "原生安装（DSU Sideloader 方式，Shizuku 免 Root，仅单 system.img）"
-                : "软件安装（分段管道，需 Root）")
+                : "软件安装（super / 整包多分区，需 Root；单 system.img 自动用原生安装）")
                 + "\n安装后默认单次启动，下次开机回主系统。", 11f, P.onSurfaceVariant, false);
         hint.setPadding(0, dp(10), 0, 0);
         box.addView(hint);
@@ -895,17 +895,19 @@ public class MainActivity extends Activity {
             return;
         }
         final boolean nativeModeDomain = nativeDomain();
-        if (!rootMode && !nativeModeDomain) {
-            toast("需要 Root；或开启无 Root 模式并通过 Shizuku 授权后使用原生安装");
+        final boolean singlePlan = pendingPlan != null
+                && pendingPlan.kind == ImageFormatDetector.KIND_SINGLE;
+        if (!rootMode && !(nativeModeDomain || singlePlan)) {
+            toast("需要 Root；或开启无 Root 模式并通过 Shizuku 授权后安装单个 system.img");
             return;
         }
-        if (nativeModeDomain && !rootMode && !ShizukuHelper.hasPermission()) {
-            toast("原生安装需要 Shizuku 授权（无 Root 模式）");
+        if (!rootMode && !ShizukuHelper.hasPermission()) {
+            toast("无 Root 安装需要 Shizuku 授权");
             return;
         }
         boolean detail = AppPrefs.showInstallDetails(this);
         final InstallLogger log = new InstallLogger(this, slot);
-        log.add("=== DSU Manager 2.1.5 安装开始 ===");
+        log.add("=== DSU Manager 2.1.6 安装开始 ===");
         log.add("slot=" + slot + " userdata=" + DsuManager.fmtBytes(userdataBytes)
                 + " domain=" + AppPrefs.installDomain(this));
 
@@ -945,12 +947,19 @@ public class MainActivity extends Activity {
             final long totalBytes = plan != null ? plan.totalBytes : sumFolder(folder);
             final long[] doneBytes = {0};
             try {
-                if (nativeModeDomain) {
+                // 单 system 镜像统一走原生安装（系统 DSU 安装器）：
+                // gsi_tool 需要 root 且通过 binder 传 fd，在 KernelSU 的 su 域下会
+                // 出现 "Could not commit live image data / Operation not permitted"。
+                boolean useNativeInstaller = nativeModeDomain
+                        || (plan != null && plan.kind == ImageFormatDetector.KIND_SINGLE);
+                if (useNativeInstaller) {
                     if (plan == null || plan.kind != ImageFormatDetector.KIND_SINGLE) {
                         throw new RuntimeException("原生安装（DSU Sideloader 方式）只支持单个 system.img；"
                                 + "super / 整包文件夹请改用软件安装（需 Root）");
                     }
-                    log.add("原生安装（DSU Sideloader 方式，Shizuku 免 Root 可用）");
+                    log.add(nativeModeDomain
+                            ? "原生安装（DSU Sideloader 方式，Shizuku 免 Root 可用）"
+                            : "单 system 镜像：自动改用原生安装（系统 DSU 安装器）");
                     final int[] lastPct = {-1};
                     DsuSideloadInstaller.Result nr = DsuSideloadInstaller.install(
                             this, plan.rawFile, plan.totalBytes, userdataBytes,

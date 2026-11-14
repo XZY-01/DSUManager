@@ -2,6 +2,12 @@
 
 本文件按版本倒序记录。每个版本的 APK 位于 `apk/` 目录，并对应 GitHub Releases。
 
+## v2.1.6（2026-11）
+- 修复单个 system.img 软件安装失败（KernelSU 下 gsi_tool 提交镜像数据报 EPERM）
+- 单 system 镜像自动改用系统 DSU 安装器；软件安装仅用于 super.img / 整包多分区
+- 无 Root + Shizuku 也可安装单个 system.img
+- APK：`DSUManager-v2.1.6.apk`
+
 ## v2.1.5（2026-11）
 - 安装成功后自动清理安装缓存（原生安装与软件安装均适用）
 - APK：`DSUManager-v2.1.5.apk`
