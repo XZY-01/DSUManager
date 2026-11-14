@@ -1,4 +1,4 @@
-# DSU Manager
+﻿# DSU Manager
 
 > 在 Android 上管理 DSU（Dynamic System Updates，动态系统更新）多槽的 Material 3 工具。
 > 支持 Root（KernelSU / Magisk / APatch）与 **Shizuku 免 Root 原生安装**，无需电脑。
@@ -148,7 +148,7 @@ DSUManager/
 
 ## 版本
 
-当前版本 **v2.1.0**。完整版本历史见 **[CHANGELOG.md](CHANGELOG.md)**，每个版本的 APK 都在
+当前版本 **v2.1.12**。完整版本历史见 **[CHANGELOG.md](CHANGELOG.md)**，每个版本的 APK 都在
 `apk/` 与 Releases 中提供。
 
 ## 致谢
@@ -173,3 +173,4 @@ DSUManager/
 ## License
 
 [MIT](LICENSE)。第三方组件（Shizuku SDK）遵循其 Apache-2.0 许可，见 [THIRD_PARTY.md](THIRD_PARTY.md)。
+
