@@ -364,6 +364,15 @@ public class MainActivity extends Activity {
             gap.leftMargin = dp(10);
             row.addView(actionButton("重启主系统", P.onPrimaryContainer, P.primaryContainer,
                     v -> confirmBootMain()), gap);
+        } else if (rootMode) {
+            LinearLayout.LayoutParams gap = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            gap.leftMargin = dp(10);
+            TextView reboot = actionButton("重启到 DSU", P.onPrimaryContainer, P.primaryContainer,
+                    v -> confirmRebootToDsu());
+            reboot.setEnabled(!state.slots.isEmpty());
+            reboot.setAlpha(state.slots.isEmpty() ? 0.5f : 1f);
+            row.addView(reboot, gap);
         }
         st.addView(row);
         bodyBox.addView(st, cardParams());
@@ -412,7 +421,7 @@ public class MainActivity extends Activity {
             }
         }
 
-        TextView footer = text("DSU Manager v2.1.9　·　开发者：XZY / 大肥鱼", 11f, P.onSurfaceVariant, false);
+        TextView footer = text("DSU Manager v2.1.10　·　开发者：XZY / 大肥鱼", 11f, P.onSurfaceVariant, false);
         footer.setGravity(Gravity.CENTER);
         footer.setPadding(0, dp(14), 0, dp(8));
         bodyBox.addView(footer);
@@ -899,8 +908,43 @@ public class MainActivity extends Activity {
         dlg.show();
     }
 
-    private void maybeAutoBioBackup() {
-        if (inDsu || !rootMode || !AppPrefs.bioProtect(this)) return;
+    private void confirmRebootToDsu() {
+        if (state.slots.isEmpty()) { toast("没有可启动的 DSU 槽"); return; }
+        if (state.slots.size() == 1) {
+            askRebootToDsu(state.slots.get(0).name);
+            return;
+        }
+        String[] names = new String[state.slots.size()];
+        for (int i = 0; i < state.slots.size(); i++) names[i] = state.slots.get(i).name;
+        new AlertDialog.Builder(this)
+                .setTitle("重启到哪个 DSU 槽？")
+                .setItems(names, (d, which) -> askRebootToDsu(names[which]))
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void askRebootToDsu(String slot) {
+        new AlertDialog.Builder(this)
+                .setTitle("重启到 DSU「" + slot + "」？")
+                .setMessage("将启用该槽并立即重启，仅本次启动；下次开机会回到主系统。")
+                .setNegativeButton("取消", null)
+                .setPositiveButton("启用并重启", (d, w) -> rebootToDsu(slot))
+                .show();
+    }
+
+    private void rebootToDsu(String slot) {
+        io.execute(() -> {
+            if (AppPrefs.bioProtect(this)) BioProtect.backup();
+            RootShell.Result r = DsuManager.enableOnce(slot);
+            if (r == null || !r.ok()) {
+                ui.post(() -> toast("启用 DSU 失败：" + (r == null ? "无返回" : r.out.trim())));
+                return;
+            }
+            DsuManager.bootMainSystem(inDsu);
+        });
+    }
+
+    private void maybeAutoBioBackup() {        if (inDsu || !rootMode || !AppPrefs.bioProtect(this)) return;
         io.execute(() -> {
             if (!BioProtect.hasBackup()) BioProtect.backup();
         });
@@ -964,7 +1008,7 @@ public class MainActivity extends Activity {
         }
         boolean detail = AppPrefs.showInstallDetails(this);
         final InstallLogger log = new InstallLogger(this, slot);
-        log.add("=== DSU Manager 2.1.9 安装开始 ===");
+        log.add("=== DSU Manager 2.1.10 安装开始 ===");
         log.add("slot=" + slot + " userdata=" + DsuManager.fmtBytes(userdataBytes)
                 + " domain=" + AppPrefs.installDomain(this));
 
