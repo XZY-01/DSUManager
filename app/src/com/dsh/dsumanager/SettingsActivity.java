@@ -188,6 +188,7 @@ public class SettingsActivity extends Activity {
 
         content.addView(appearanceCard(), cardParams());
         content.addView(installCard(), cardParams());
+        content.addView(bioCard(), cardParams());
         content.addView(experimentalCard(), cardParams());
         content.addView(aboutCard(), cardParams());
 
@@ -485,6 +486,50 @@ public class SettingsActivity extends Activity {
         return c;
     }
 
+    private LinearLayout bioCard() {
+        LinearLayout c = card(P.surfaceContainer);
+        c.addView(text("生物识别保护（实验）", 16f, P.onSurface, true));
+        c.addView(switchRow("重启 DSU 前自动备份",
+                "备份主系统指纹 / 面容模板与 persist 校准，返回主系统后可恢复",
+                AppPrefs.bioProtect(this), v -> {
+                    AppPrefs.setBioProtect(this, v);
+                    toast(v ? "已开启：重启 DSU 前自动备份" : "已关闭自动备份");
+                }));
+        c.addView(settingRow("立即备份指纹 / 面容", "使用 root 备份到 /data/local/tmp", v -> doBioBackup()));
+        c.addView(settingRow("恢复备份并重启", "主系统指纹 / 面容丢失时使用", v -> confirmBioRestore()));
+        TextView hint = text("原理：DSU 系统可能改写共享的 persist 校准数据，导致回到主系统后"
+                + "指纹/面容失效。开启后会在每次启用 DSU 槽前备份模板与校准；"
+                + "恢复后需重启主系统生效。", 11f, P.onSurfaceVariant, false);
+        hint.setPadding(0, dp(6), 0, 0);
+        c.addView(hint);
+        return c;
+    }
+
+    private void doBioBackup() {
+        if (!rootMode) { toast("需要 Root 权限"); return; }
+        runOp("正在备份生物识别数据", "备份指纹 / 面容模板与校准…", () -> {
+            boolean ok = BioProtect.backup();
+            ui.post(() -> toast(ok ? "备份完成" : "备份失败（需要有可用的指纹/面容数据）"));
+        });
+    }
+
+    private void confirmBioRestore() {
+        if (!rootMode) { toast("需要 Root 权限"); return; }
+        new AlertDialog.Builder(this)
+                .setTitle("恢复备份并重启？")
+                .setMessage("将把备份的指纹 / 面容模板与 persist 校准写回主系统，然后立即重启。")
+                .setNegativeButton("取消", null)
+                .setPositiveButton("恢复并重启", (d, w) -> runOp("正在恢复", "写回指纹 / 面容数据…", () -> {
+                    boolean ok = BioProtect.restore();
+                    if (ok) {
+                        RootShell.runRoot("reboot", 60);
+                    } else {
+                        ui.post(() -> toast("没有可用备份或恢复失败"));
+                    }
+                }))
+                .show();
+    }
+
     private LinearLayout experimentalCard() {
         LinearLayout c = card(P.surfaceContainer);
         c.addView(text("实验性功能", 16f, P.onSurface, true));
@@ -506,8 +551,8 @@ public class SettingsActivity extends Activity {
     private LinearLayout aboutCard() {
         LinearLayout c = card(P.surfaceContainer);
         c.addView(text("关于", 16f, P.onSurface, true));
-        c.addView(text("DSU Manager v2.1.8", 12f, P.onSurfaceVariant, false));
-        c.addView(settingRow("更新日志", "1.0 → 2.1.8", v -> showChangelog()));
+        c.addView(text("DSU Manager v2.1.9", 12f, P.onSurfaceVariant, false));
+        c.addView(settingRow("更新日志", "1.0 → 2.1.9", v -> showChangelog()));
         c.addView(devRow("XZY", "酷安主页", "https://www.coolapk.com/u/28096321", R.drawable.dev_xzy));
         c.addView(devRow("大肥鱼", "DeepSeek 官网", "https://www.deepseek.com/", R.drawable.dev_dfy));
         return c;
@@ -680,6 +725,10 @@ public class SettingsActivity extends Activity {
 
     private void showChangelog() {
         String text = "DSU Manager 更新日志\n\n"
+                + "2.1.9（2026-11）\n"
+                + "· 新增「生物识别保护」：重启 DSU 前自动备份主系统指纹/面容模板与 persist 校准\n"
+                + "· 回到主系统后若检测到指纹/面容数据缺失，可用备份恢复并重启\n"
+                + "· 修复从澎湃 DSU 返回主系统后指纹/面容丢失的问题\n\n"
                 + "2.1.8（2026-11）\n"
                 + "· 修复 zip/tar 只能识别 system 分区：现在支持多分区镜像（system/vendor/product…）\n"
                 + "· 压缩包内含 super.img 时自动按 super 安装；含多个分区镜像时逐分区安装\n\n"

@@ -74,5 +74,14 @@ public final class AppPrefs {
         p(c).edit().putString("slot_order", order).apply();
     }
 
+    // 主系统生物识别保护（重启 DSU 前备份指纹/面容）
+    public static boolean bioProtect(Context c) {
+        return p(c).getBoolean("bio_protect", true);
+    }
+
+    public static void setBioProtect(Context c, boolean v) {
+        p(c).edit().putBoolean("bio_protect", v).apply();
+    }
+
     private AppPrefs() {}
 }

@@ -2,6 +2,12 @@
 
 本文件按版本倒序记录。每个版本的 APK 位于 `apk/` 目录，并对应 GitHub Releases。
 
+## v2.1.9（2026-11）
+- 新增「生物识别保护」：启用 DSU 槽 / 打开应用时自动备份主系统指纹、面容模板与 persist 校准
+- 回到主系统后若检测到指纹 / 面容模板缺失，可一键恢复备份并重启
+- 修复从澎湃 DSU 返回主系统后指纹 / 面容丢失的问题
+- APK：`DSUManager-v2.1.9.apk`
+
 ## v2.1.8（2026-11）
 - 修复 zip/tar 只能识别 system 分区的问题：现在支持压缩包内的多分区镜像
   （system / system_ext / product / vendor / odm / vendor_dlkm / system_dlkm / mi_ext）
