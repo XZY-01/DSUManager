@@ -79,7 +79,6 @@ public class MainActivity extends Activity {
     private ImageFormatDetector.Plan pendingPlan;
     private final ArrayList<PartInput> pendingFolder = new ArrayList<>();
     private boolean forceNativeOnce = false;
-    private boolean bioRestorePromptShown = false;
 
     private static class PartInput {
         String name, display;
@@ -319,8 +318,6 @@ public class MainActivity extends Activity {
                 state = fs;
                 activeSlot = state.activeSlot;
                 render();
-                maybeCheckBioRestore();
-                maybeAutoBioBackup();
             });
         });
     }
@@ -421,7 +418,7 @@ public class MainActivity extends Activity {
             }
         }
 
-        TextView footer = text("DSU Manager v2.1.10　·　开发者：XZY / 大肥鱼", 11f, P.onSurfaceVariant, false);
+        TextView footer = text("DSU Manager v2.1.11　·　开发者：XZY / 大肥鱼", 11f, P.onSurfaceVariant, false);
         footer.setGravity(Gravity.CENTER);
         footer.setPadding(0, dp(14), 0, dp(8));
         bodyBox.addView(footer);
@@ -546,10 +543,6 @@ public class MainActivity extends Activity {
 
     private void slotAction(String action, DsuManager.Slot s) {
         io.execute(() -> {
-            if (AppPrefs.bioProtect(this)
-                    && ("enableOnce".equals(action) || "enableSticky".equals(action))) {
-                BioProtect.backup();
-            }
             RootShell.Result r;
             switch (action) {
                 case "enableOnce": r = DsuManager.enableOnce(s.name); break;
@@ -934,7 +927,6 @@ public class MainActivity extends Activity {
 
     private void rebootToDsu(String slot) {
         io.execute(() -> {
-            if (AppPrefs.bioProtect(this)) BioProtect.backup();
             RootShell.Result r = DsuManager.enableOnce(slot);
             if (r == null || !r.ok()) {
                 ui.post(() -> toast("启用 DSU 失败：" + (r == null ? "无返回" : r.out.trim())));
@@ -942,37 +934,6 @@ public class MainActivity extends Activity {
             }
             DsuManager.bootMainSystem(inDsu);
         });
-    }
-
-    private void maybeAutoBioBackup() {        if (inDsu || !rootMode || !AppPrefs.bioProtect(this)) return;
-        io.execute(() -> {
-            if (!BioProtect.hasBackup()) BioProtect.backup();
-        });
-    }
-
-    private void maybeCheckBioRestore() {
-        if (bioRestorePromptShown || inDsu || !rootMode || !AppPrefs.bioProtect(this)) return;
-        bioRestorePromptShown = true;
-        io.execute(() -> {
-            if (BioProtect.hasBackup() && BioProtect.missing()) {
-                ui.post(this::showBioRestoreDialog);
-            }
-        });
-    }
-
-    private void showBioRestoreDialog() {        new AlertDialog.Builder(this)
-                .setTitle("主系统指纹 / 面容数据缺失")
-                .setMessage("检测到主系统生物识别数据不完整，可能是上次启动 DSU 导致的。\n\n"
-                        + "已有重启 DSU 前的备份，可恢复后重启主系统。")
-                .setNegativeButton("稍后", null)
-                .setPositiveButton("恢复并重启", (d, w) -> io.execute(() -> {
-                    if (BioProtect.restore()) {
-                        RootShell.runRoot("reboot", 60);
-                    } else {
-                        ui.post(() -> toast("恢复失败：备份不可用"));
-                    }
-                }))
-                .show();
     }
 
     private boolean nativeDomain() {
@@ -1008,7 +969,7 @@ public class MainActivity extends Activity {
         }
         boolean detail = AppPrefs.showInstallDetails(this);
         final InstallLogger log = new InstallLogger(this, slot);
-        log.add("=== DSU Manager 2.1.10 安装开始 ===");
+        log.add("=== DSU Manager 2.1.11 安装开始 ===");
         log.add("slot=" + slot + " userdata=" + DsuManager.fmtBytes(userdataBytes)
                 + " domain=" + AppPrefs.installDomain(this));
 

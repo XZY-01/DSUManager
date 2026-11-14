@@ -1,0 +1,6 @@
+id=dsu_bio_guard
+name=DSU 生物识别保护
+version=v1.0
+versionCode=1
+author=XZY
+description=重启 DSU 前备份主系统指纹/面容，回到主系统后开机自动恢复模板与 persist 校准
