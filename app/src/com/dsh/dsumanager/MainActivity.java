@@ -355,13 +355,7 @@ public class MainActivity extends Activity {
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setPadding(0, dp(12), 0, 0);
         row.addView(actionButton("刷新", P.onPrimary, P.primary, v -> detectEnvAndRefresh()));
-        if (inDsu) {
-            LinearLayout.LayoutParams gap = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            gap.leftMargin = dp(10);
-            row.addView(actionButton("重启主系统", P.onPrimaryContainer, P.primaryContainer,
-                    v -> confirmBootMain()), gap);
-        } else if (rootMode) {
+        if (!inDsu && rootMode) {
             LinearLayout.LayoutParams gap = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             gap.leftMargin = dp(10);
@@ -418,7 +412,7 @@ public class MainActivity extends Activity {
             }
         }
 
-        TextView footer = text("DSU Manager v2.1.11　·　开发者：XZY / 大肥鱼", 11f, P.onSurfaceVariant, false);
+        TextView footer = text("DSU Manager v2.1.12　·　开发者：XZY / 大肥鱼", 11f, P.onSurfaceVariant, false);
         footer.setGravity(Gravity.CENTER);
         footer.setPadding(0, dp(14), 0, dp(8));
         bodyBox.addView(footer);
@@ -446,14 +440,26 @@ public class MainActivity extends Activity {
         m.setPadding(0, dp(8), 0, 0);
         c.addView(m);
 
-        if (inDsu) {
+        if (rootMode) {
             LinearLayout actions = new LinearLayout(this);
             actions.setOrientation(LinearLayout.HORIZONTAL);
             actions.setPadding(0, dp(12), 0, 0);
-            actions.addView(actionButton("启动主系统", P.onPrimary, P.primary, v -> confirmBootMain()));
+            actions.addView(actionButton(inDsu ? "重启到主系统" : "重启手机",
+                    P.onPrimary, P.primary, v -> confirmRebootFromMainCard()));
             c.addView(actions);
         }
         return c;
+    }
+
+    private void confirmRebootFromMainCard() {
+        new AlertDialog.Builder(this)
+                .setTitle(inDsu ? "重启到主系统？" : "重启手机？")
+                .setMessage(inDsu
+                        ? "将关闭 DSU 并重启，进入主系统。"
+                        : "立即重启手机。")
+                .setNegativeButton("取消", null)
+                .setPositiveButton("重启", (d, w) -> confirmBootMain())
+                .show();
     }
 
     private View slotCard(DsuManager.Slot s) {
@@ -969,7 +975,7 @@ public class MainActivity extends Activity {
         }
         boolean detail = AppPrefs.showInstallDetails(this);
         final InstallLogger log = new InstallLogger(this, slot);
-        log.add("=== DSU Manager 2.1.11 安装开始 ===");
+        log.add("=== DSU Manager 2.1.12 安装开始 ===");
         log.add("slot=" + slot + " userdata=" + DsuManager.fmtBytes(userdataBytes)
                 + " domain=" + AppPrefs.installDomain(this));
 
