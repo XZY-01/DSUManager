@@ -46,7 +46,7 @@
   - **原生安装**：DSU Sideloader 方式——本地压缩为 `.img.gz`，再调起系统
     `com.android.dynsystem` 完成安装；**无 Root 时只需 Shizuku 授权**
   - ⚠️ **原生安装只能安装单个 system.img（单个 DSU 槽）；需要多 DSU 槽时必须使用 Root 的软件安装**
-- **单镜像自动路由**：即使安装域选「软件安装」，单个 `system.img` 也会自动改用「原生安装」调起系统 DSU 安装器，避开 KernelSU 下 `gsi_tool` 的 SELinux 限制
+- **软件安装失败可回退**：若 KernelSU 下 `gsi_tool` 提交镜像被 SELinux 拒绝，单个 `system.img` 可在失败弹窗中一键「改用原生安装」重试
 - **原生安装自动清理**：调起系统 DSU 后轮询安装状态，安装完成自动删除 `Download/DSUManager/` 下的临时 `.img.gz`
 - **完整日志**：安装过程实时日志；成功/失败弹窗带原因；日志只在点“保存日志”时通过 SAF 导出，
   不会自动写入应用目录

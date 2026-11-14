@@ -78,6 +78,7 @@ public class MainActivity extends Activity {
     // 待安装数据
     private ImageFormatDetector.Plan pendingPlan;
     private final ArrayList<PartInput> pendingFolder = new ArrayList<>();
+    private boolean forceNativeOnce = false;
 
     private static class PartInput {
         String name, display;
@@ -408,7 +409,7 @@ public class MainActivity extends Activity {
             }
         }
 
-        TextView footer = text("DSU Manager v2.1.6　·　开发者：XZY / 大肥鱼", 11f, P.onSurfaceVariant, false);
+        TextView footer = text("DSU Manager v2.1.7　·　开发者：XZY / 大肥鱼", 11f, P.onSurfaceVariant, false);
         footer.setGravity(Gravity.CENTER);
         footer.setPadding(0, dp(14), 0, dp(8));
         bodyBox.addView(footer);
@@ -849,7 +850,7 @@ public class MainActivity extends Activity {
         box.addView(gbIn);
         TextView hint = text("安装域：" + ("native".equals(AppPrefs.installDomain(this))
                 ? "原生安装（DSU Sideloader 方式，Shizuku 免 Root，仅单 system.img）"
-                : "软件安装（super / 整包多分区，需 Root；单 system.img 自动用原生安装）")
+                : "软件安装（super / 整包多分区，需 Root；单 system.img 建议用原生安装）")
                 + "\n安装后默认单次启动，下次开机回主系统。", 11f, P.onSurfaceVariant, false);
         hint.setPadding(0, dp(10), 0, 0);
         box.addView(hint);
@@ -894,11 +895,10 @@ public class MainActivity extends Activity {
             toast("当前正在运行 DSU，请回主系统后再安装");
             return;
         }
-        final boolean nativeModeDomain = nativeDomain();
-        final boolean singlePlan = pendingPlan != null
-                && pendingPlan.kind == ImageFormatDetector.KIND_SINGLE;
-        if (!rootMode && !(nativeModeDomain || singlePlan)) {
-            toast("需要 Root；或开启无 Root 模式并通过 Shizuku 授权后安装单个 system.img");
+        final boolean nativeModeDomain = nativeDomain() || forceNativeOnce;
+        forceNativeOnce = false;
+        if (!rootMode && !nativeModeDomain) {
+            toast("需要 Root；无 Root 请把安装域切到「原生安装」并授权 Shizuku");
             return;
         }
         if (!rootMode && !ShizukuHelper.hasPermission()) {
@@ -907,7 +907,7 @@ public class MainActivity extends Activity {
         }
         boolean detail = AppPrefs.showInstallDetails(this);
         final InstallLogger log = new InstallLogger(this, slot);
-        log.add("=== DSU Manager 2.1.6 安装开始 ===");
+        log.add("=== DSU Manager 2.1.7 安装开始 ===");
         log.add("slot=" + slot + " userdata=" + DsuManager.fmtBytes(userdataBytes)
                 + " domain=" + AppPrefs.installDomain(this));
 
@@ -947,19 +947,12 @@ public class MainActivity extends Activity {
             final long totalBytes = plan != null ? plan.totalBytes : sumFolder(folder);
             final long[] doneBytes = {0};
             try {
-                // 单 system 镜像统一走原生安装（系统 DSU 安装器）：
-                // gsi_tool 需要 root 且通过 binder 传 fd，在 KernelSU 的 su 域下会
-                // 出现 "Could not commit live image data / Operation not permitted"。
-                boolean useNativeInstaller = nativeModeDomain
-                        || (plan != null && plan.kind == ImageFormatDetector.KIND_SINGLE);
-                if (useNativeInstaller) {
+                if (nativeModeDomain) {
                     if (plan == null || plan.kind != ImageFormatDetector.KIND_SINGLE) {
                         throw new RuntimeException("原生安装（DSU Sideloader 方式）只支持单个 system.img；"
                                 + "super / 整包文件夹请改用软件安装（需 Root）");
                     }
-                    log.add(nativeModeDomain
-                            ? "原生安装（DSU Sideloader 方式，Shizuku 免 Root 可用）"
-                            : "单 system 镜像：自动改用原生安装（系统 DSU 安装器）");
+                    log.add("原生安装（DSU Sideloader 方式，Shizuku 免 Root 可用）");
                     final int[] lastPct = {-1};
                     DsuSideloadInstaller.Result nr = DsuSideloadInstaller.install(
                             this, plan.rawFile, plan.totalBytes, userdataBytes,
@@ -1034,9 +1027,22 @@ public class MainActivity extends Activity {
             } catch (Throwable t) {
                 log.add("=== INSTALL_FAILED ===", t);
                 final String reason = analyzeFailure(t.getMessage() + "\n");
+                final boolean canFallback = !nativeModeDomain
+                        && plan != null && plan.kind == ImageFormatDetector.KIND_SINGLE;
+                if (canFallback) {
+                    RootShell.runRoot("gsi_tool cancel >/dev/null 2>&1; "
+                            + "rm -rf '/data/gsi/dsu/" + slot + "/' '/metadata/gsi/dsu/" + slot + "/'; "
+                            + "if [ \"$(cat /metadata/gsi/dsu/active 2>/dev/null)\" = \"" + slot + "\" ]; then "
+                            + "  : > /metadata/gsi/dsu/active; rm -f /metadata/gsi/dsu/one_shot_boot; fi", 60);
+                    log.add("已清理失败的槽位，可选原生安装重试");
+                }
                 ui.post(() -> {
                     dlg.dismiss();
-                    showFailureDialog("安装失败", reason, null, log);
+                    if (canFallback) {
+                        showSoftwareFallbackDialog(reason, log, slot, userdataBytes);
+                    } else {
+                        showFailureDialog("安装失败", reason, null, log);
+                    }
                     refreshAsync();
                 });
             }
@@ -1172,6 +1178,25 @@ public class MainActivity extends Activity {
             startActivityForResult(i, REQ_SAVE_LOG);
         } catch (Throwable t) {
             toast("没有可用的文件保存器");
+        }
+    }
+
+    private void showSoftwareFallbackDialog(String reason, InstallLogger log, String slot, long userdataBytes) {
+        AlertDialog dlg = new AlertDialog.Builder(this)
+                .setTitle("软件安装失败")
+                .setMessage(reason + "\n\n"
+                        + "KernelSU 等 Root 方案下，gsi_tool 向 gsid 提交镜像数据可能被 SELinux 拒绝。\n"
+                        + "可改用「原生安装」（系统 DSU 安装器）重试这个单 system.img。")
+                .setPositiveButton("改用原生安装", (d, w) -> {
+                    forceNativeOnce = true;
+                    startInstall(slot, userdataBytes);
+                })
+                .setNeutralButton("保存日志", (d, w) -> saveLogViaSaf(log.text(), log.fileName()))
+                .setNegativeButton("关闭", null)
+                .create();
+        dlg.show();
+        if (dlg.getWindow() != null) {
+            dlg.getWindow().setBackgroundDrawable(rounded(P.surfaceContainerHigh, 28));
         }
     }
 
