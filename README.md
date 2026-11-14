@@ -3,7 +3,7 @@
 > 在 Android 上管理 DSU（Dynamic System Updates，动态系统更新）多槽的 Material 3 工具。
 > 支持 Root（KernelSU / Magisk / APatch）与 **Shizuku 免 Root 原生安装**，无需电脑。
 
-![GitHub release](https://img.shields.io/github/v/release/15189659138/DSUManager)
+![GitHub release](https://img.shields.io/github/v/release/XZY-01/DSUManager)
 ![平台](https://img.shields.io/badge/Android-11%20~%2017-3ddc84)
 ![语言](https://img.shields.io/badge/Java-11-orange)
 ![界面](https://img.shields.io/badge/Material%203-Monet-6750A4)
@@ -73,8 +73,8 @@
 ## 安装与使用
 
 ### 下载
-- 最新版本：见 [发布](https://github.com/15189659138/DSUManager/releases/latest)
-- 历史版本：`apk/` 目录内含从 v1.0 到当前版本的全部 APK（也可在 [发布](https://github.com/15189659138/DSUManager/releases) 中下载）
+- 最新版本：见 [发布](https://github.com/XZY-01/DSUManager/releases/latest)
+- 历史版本：`apk/` 目录内含从 v1.0 到当前版本的全部 APK（也可在 [发布](https://github.com/XZY-01/DSUManager/releases) 中下载）
 - 123盘（不常更新）：https://4000162266.share.123pan.cn/123pan/46pUMh-Mps6v?pwd=9rDr#
 
 ### 要求
