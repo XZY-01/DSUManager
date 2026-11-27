@@ -355,7 +355,13 @@ public class MainActivity extends Activity {
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setPadding(0, dp(12), 0, 0);
         row.addView(actionButton("刷新", P.onPrimary, P.primary, v -> detectEnvAndRefresh()));
-        if (!inDsu && rootMode) {
+        if (inDsu && rootMode) {
+            LinearLayout.LayoutParams gap = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            gap.leftMargin = dp(10);
+            row.addView(actionButton("重启到主系统", P.onPrimaryContainer, P.primaryContainer,
+                    v -> confirmRebootFromMainCard()), gap);
+        } else if (rootMode) {
             LinearLayout.LayoutParams gap = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             gap.leftMargin = dp(10);
@@ -412,7 +418,7 @@ public class MainActivity extends Activity {
             }
         }
 
-        TextView footer = text("DSU Manager v2.3　·　开发者：XZY / 大肥鱼", 11f, P.onSurfaceVariant, false);
+        TextView footer = text("DSU Manager v2.3.1　·　开发者：XZY / 大肥鱼", 11f, P.onSurfaceVariant, false);
         footer.setGravity(Gravity.CENTER);
         footer.setPadding(0, dp(14), 0, dp(8));
         bodyBox.addView(footer);
@@ -481,7 +487,10 @@ public class MainActivity extends Activity {
         else if (s.active) head.addView(chip("单次启动", P.secondaryContainer, P.onSecondaryContainer));
         c.addView(head);
 
-        StringBuilder meta = new StringBuilder("占用 " + DsuManager.fmtBytes(s.totalKB * 1024));
+        StringBuilder meta = new StringBuilder(
+                inDsu && s.totalKB == 0
+                        ? "占用：DSU 中不可读（主系统数据未挂载）"
+                        : "占用 " + DsuManager.fmtBytes(s.totalKB * 1024));
         if (s.hasSystem) meta.append("　· system ✓");
         if (s.hasUserdata) meta.append("　· userdata ✓");
         if (s.imageCount > 2) meta.append("　· 分区 ").append(s.imageCount).append(" 个");
@@ -975,7 +984,7 @@ public class MainActivity extends Activity {
         }
         boolean detail = AppPrefs.showInstallDetails(this);
         final InstallLogger log = new InstallLogger(this, slot);
-        log.add("=== DSU Manager 2.3 安装开始 ===");
+        log.add("=== DSU Manager 2.3.1 安装开始 ===");
         log.add("slot=" + slot + " userdata=" + DsuManager.fmtBytes(userdataBytes)
                 + " domain=" + AppPrefs.installDomain(this));
 
