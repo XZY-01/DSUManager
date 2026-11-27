@@ -3,8 +3,9 @@
 本文件按版本倒序记录。每个版本的 APK 位于 `apk/` 目录，并对应 GitHub Releases。
 
 ## v2.4（2026-11）
-- 新增「DSU 备份」卡片（主系统 + Root 可见）
-- 一键备份当前活动槽：系统镜像 + userdata + 元数据，保存到 `Download/DSUManager/backups/<槽名>_<时间>/`
+- 设置页新增「DSU 备份」卡片（主系统 + Root 可见）
+- 点击「备份槽位」可选择任意槽位备份：系统镜像 + userdata + 元数据，保存到 `Download/DSUManager/backups/<槽名>_<时间>/`
+- 主界面槽位卡片与状态卡的按钮间距收紧
 - 备份支持进度显示与取消，稀疏镜像按稀疏复制（直接写 `/data/media/0`，避免 FUSE 写实体积暴涨）
 - 新增备份恢复：选择备份后可覆盖恢复到同名槽，并可直接启用重启
 - 恢复时若槽名不同会自动修正 `install_dir` / `metadata_encryption_dir`
