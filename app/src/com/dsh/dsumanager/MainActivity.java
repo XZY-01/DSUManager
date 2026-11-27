@@ -412,7 +412,7 @@ public class MainActivity extends Activity {
             }
         }
 
-        TextView footer = text("DSU Manager v2.2　·　开发者：XZY / 大肥鱼", 11f, P.onSurfaceVariant, false);
+        TextView footer = text("DSU Manager v2.3　·　开发者：XZY / 大肥鱼", 11f, P.onSurfaceVariant, false);
         footer.setGravity(Gravity.CENTER);
         footer.setPadding(0, dp(14), 0, dp(8));
         bodyBox.addView(footer);
@@ -975,7 +975,7 @@ public class MainActivity extends Activity {
         }
         boolean detail = AppPrefs.showInstallDetails(this);
         final InstallLogger log = new InstallLogger(this, slot);
-        log.add("=== DSU Manager 2.2 安装开始 ===");
+        log.add("=== DSU Manager 2.3 安装开始 ===");
         log.add("slot=" + slot + " userdata=" + DsuManager.fmtBytes(userdataBytes)
                 + " domain=" + AppPrefs.installDomain(this));
 

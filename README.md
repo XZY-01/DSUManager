@@ -148,7 +148,7 @@ DSUManager/
 
 ## 版本
 
-当前版本 **v2.2**。完整版本历史见 **[CHANGELOG.md](CHANGELOG.md)**，每个版本的 APK 都在
+当前版本 **v2.3**。完整版本历史见 **[CHANGELOG.md](CHANGELOG.md)**，每个版本的 APK 都在
 `apk/` 与 Releases 中提供。
 
 ## 致谢

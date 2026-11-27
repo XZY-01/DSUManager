@@ -14,10 +14,21 @@ import java.io.FileReader;
 public final class EnvDetector {
 
     public static boolean isDsu() {
-        if ("1".equals(getprop("ro.gsid.image_running"))) return true;
-        if ("1".equals(getprop("ro.gsi.dsu"))) return true;
+        if (isTrueProp("ro.gsid.image_running")) return true;
+        if (isTrueProp("ro.gsi.dsu")) return true;
         if (dmNamesContainGsi()) return true;
         return mountInfoLooksLikeDsu();
+    }
+
+    /** 兼容 "1" / "true" / "yes" / "on" 等布尔属性写法。 */
+    private static boolean isTrueProp(String name) {
+        String v = getprop(name);
+        if (v == null) return false;
+        v = v.trim();
+        return "1".equals(v)
+                || "true".equalsIgnoreCase(v)
+                || "yes".equalsIgnoreCase(v)
+                || "on".equalsIgnoreCase(v);
     }
 
     public static String getprop(String name) {
