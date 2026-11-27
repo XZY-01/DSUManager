@@ -105,6 +105,44 @@ public final class RootShell {
         return exec(argv, timeoutSec);
     }
 
+    public interface LineListener {
+        void onLine(String line);
+    }
+
+    /** 执行 su 命令并逐行回调输出（备份/恢复进度用）。 */
+    public static Result runRootLines(String cmd, int timeoutSec, LineListener listener) {
+        String su = findSu();
+        if (su == null) return new Result(-1, "no su binary");
+        final StringBuilder sb = new StringBuilder();
+        Process p = null;
+        try {
+            p = new ProcessBuilder(su, "-c", cmd).redirectErrorStream(true).start();
+            final Process fp = p;
+            Thread reader = new Thread(() -> {
+                try (BufferedReader r = new BufferedReader(
+                        new InputStreamReader(fp.getInputStream(), "UTF-8"))) {
+                    String line;
+                    while ((line = r.readLine()) != null) {
+                        sb.append(line).append('\n');
+                        if (listener != null) listener.onLine(line);
+                    }
+                } catch (Exception ignored) { }
+            });
+            reader.setDaemon(true);
+            reader.start();
+            boolean finished = p.waitFor(timeoutSec, java.util.concurrent.TimeUnit.SECONDS);
+            if (!finished) {
+                p.destroyForcibly();
+                return new Result(-2, "timeout after " + timeoutSec + "s\n" + sb);
+            }
+            reader.join(2000);
+            return new Result(p.exitValue(), sb.toString());
+        } catch (Exception e) {
+            if (p != null) p.destroyForcibly();
+            return new Result(-3, e.getMessage() + "\n" + sb);
+        }
+    }
+
     /** 通过 Shizuku 执行 shell（无 Root 模式）。 */
     public static Result runShizuku(String cmd, int timeoutSec) {
         return ShizukuHelper.exec(cmd, timeoutSec);

@@ -506,8 +506,8 @@ public class SettingsActivity extends Activity {
     private LinearLayout aboutCard() {
         LinearLayout c = card(P.surfaceContainer);
         c.addView(text("关于", 16f, P.onSurface, true));
-        c.addView(text("DSU Manager v2.3.1", 12f, P.onSurfaceVariant, false));
-        c.addView(settingRow("更新日志", "1.0 → 2.3.1", v -> showChangelog()));
+        c.addView(text("DSU Manager v2.4", 12f, P.onSurfaceVariant, false));
+        c.addView(settingRow("更新日志", "1.0 → 2.4", v -> showChangelog()));
         c.addView(settingRow("GitHub 仓库", "github.com/XZY-01/DSUManager",
                 v -> openUrl("https://github.com/XZY-01/DSUManager")));
         c.addView(devRow("XZY", "酷安主页", "https://www.coolapk.com/u/28096321", R.drawable.dev_xzy));
@@ -682,6 +682,11 @@ public class SettingsActivity extends Activity {
 
     private void showChangelog() {
         String text = "DSU Manager 更新日志\n\n"
+                + "2.4（2026-11）\n"
+                + "· 新增 DSU 备份：一键备份当前活动槽（含 userdata）到 Download/DSUManager/backups\n"
+                + "· 新增备份恢复：可覆盖恢复到同名槽并直接启用重启\n"
+                + "· 备份支持进度显示与取消，稀疏镜像按稀疏复制\n"
+                + "\n"
                 + "2.3.1（2026-11）\n"
                 + "· DSU 状态卡在 DSU 中恢复「重启到主系统」按钮\n"
                 + "· DSU 中槽占用空间不再误显示 0B，改为提示主系统数据不可读\n"

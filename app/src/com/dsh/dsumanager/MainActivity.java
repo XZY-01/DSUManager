@@ -377,6 +377,11 @@ public class MainActivity extends Activity {
         // 主系统卡
         bodyBox.addView(mainSystemCard(), cardParams());
 
+        // DSU 备份
+        if (rootMode && !inDsu) {
+            bodyBox.addView(backupCard(), cardParams());
+        }
+
         // 槽位
         if (!rootMode && !shizukuMode) {
             LinearLayout c = card(P.surfaceContainer);
@@ -418,7 +423,7 @@ public class MainActivity extends Activity {
             }
         }
 
-        TextView footer = text("DSU Manager v2.3.1　·　开发者：XZY / 大肥鱼", 11f, P.onSurfaceVariant, false);
+        TextView footer = text("DSU Manager v2.4　·　开发者：XZY / 大肥鱼", 11f, P.onSurfaceVariant, false);
         footer.setGravity(Gravity.CENTER);
         footer.setPadding(0, dp(14), 0, dp(8));
         bodyBox.addView(footer);
@@ -951,6 +956,226 @@ public class MainActivity extends Activity {
         });
     }
 
+    private View backupCard() {
+        LinearLayout c = card(P.surfaceContainer);
+        c.addView(text("DSU 备份", 18f, P.onSurface, true));
+        boolean hasActive = activeSlot != null && !activeSlot.isEmpty();
+        String hint = hasActive
+                ? "当前活动槽：" + activeSlot + "\n备份包含系统镜像与 userdata，保存到 Download/DSUManager/backups"
+                : "当前没有活动槽，启用一个 DSU 槽后可备份";
+        TextView t = text(hint, 12f, P.onSurfaceVariant, false);
+        t.setPadding(0, dp(8), 0, 0);
+        c.addView(t);
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        actions.setPadding(0, dp(12), 0, 0);
+        TextView bk = actionButton("备份当前活动槽", P.onPrimary, P.primary, v -> startBackup());
+        bk.setEnabled(hasActive);
+        bk.setAlpha(hasActive ? 1f : 0.5f);
+        actions.addView(bk);
+        actions.addView(gap(dp(8)));
+        actions.addView(actionButton("恢复备份", P.onPrimaryContainer, P.primaryContainer,
+                v -> showRestorePicker()));
+        c.addView(actions);
+        return c;
+    }
+
+    private void startBackup() {
+        final String slot = activeSlot;
+        if (slot == null || slot.isEmpty()) { toast("没有活动槽可备份"); return; }
+        long kb = 0;
+        for (DsuManager.Slot s : state.slots) if (s.name.equals(slot)) kb = s.totalKB;
+        String size = kb > 0 ? DsuManager.fmtBytes(kb * 1024) : "未知";
+        new AlertDialog.Builder(this)
+                .setTitle("备份「" + slot + "」？")
+                .setMessage("包含系统镜像与 userdata，占用约 " + size + "。\n"
+                        + "保存到 Download/DSUManager/backups/，备份期间请勿断电。")
+                .setNegativeButton("取消", null)
+                .setPositiveButton("开始备份", (d, w) -> runBackup(slot))
+                .show();
+    }
+
+    private void runBackup(String slot) {
+        final ProgressUi ui2 = new ProgressUi("正在备份 " + slot, "准备中…",
+                () -> DsuBackup.cancel());
+        io.execute(() -> {
+            RootShell.Result r = DsuBackup.backup(slot, ui2);
+            ui2.dismiss();
+            final String out = r == null ? "" : r.out;
+            ui.post(() -> {
+                if (out.contains("BACKUP_OK")) {
+                    String dir = "";
+                    for (String line : out.split("\n")) {
+                        if (line.trim().startsWith("BACKUP_OK ")) {
+                            dir = line.trim().substring("BACKUP_OK ".length()).trim();
+                        }
+                    }
+                    showBackupDone(dir);
+                } else if (out.contains("CANCELLED")) {
+                    toast("已取消备份");
+                } else {
+                    showBackupFail(out);
+                }
+            });
+        });
+    }
+
+    private void showBackupDone(String dir) {
+        String shown = dir == null ? "" : dir.replace("/data/media/0/", "/sdcard/");
+        new AlertDialog.Builder(this)
+                .setTitle("备份完成")
+                .setMessage(shown)
+                .setPositiveButton("知道了", null)
+                .show();
+    }
+
+    private void showBackupFail(String out) {
+        String reason = "未知错误";
+        if (out.contains("ERR_NO_DATA")) reason = "找不到该槽的镜像目录";
+        else if (out.contains("ERR_NO_SPACE")) reason = "存储空间不足";
+        else if (out.contains("ERR_NO_BACKUP")) reason = "备份目录不存在";
+        else if (out.contains("ERR_INCOMPLETE")) reason = "该备份不完整，无法使用";
+        else if (out.contains("ERR_MKDIR") || out.contains("ERR_TMP")) reason = "无法创建备份目录";
+        else if (out.contains("ERR_CP_DATA")) reason = "复制镜像失败";
+        else if (out.contains("ERR_RENAME")) reason = "重命名备份目录失败";
+        new AlertDialog.Builder(this)
+                .setTitle("操作失败")
+                .setMessage(reason + "\n\n" + trimOut(out))
+                .setPositiveButton("关闭", null)
+                .show();
+    }
+
+    private String trimOut(String out) {
+        if (out == null) return "";
+        String s = out.trim();
+        return s.length() > 800 ? s.substring(s.length() - 800) : s;
+    }
+
+    private void showRestorePicker() {
+        io.execute(() -> {
+            final ArrayList<DsuBackup.Backup> list = DsuBackup.list();
+            ui.post(() -> {
+                if (list.isEmpty()) {
+                    toast("还没有备份");
+                    return;
+                }
+                String[] items = new String[list.size()];
+                for (int i = 0; i < list.size(); i++) items[i] = list.get(i).display();
+                new AlertDialog.Builder(this)
+                        .setTitle("选择要恢复的备份")
+                        .setItems(items, (d, which) -> confirmRestore(list.get(which)))
+                        .setNegativeButton("取消", null)
+                        .show();
+            });
+        });
+    }
+
+    private void confirmRestore(DsuBackup.Backup b) {
+        final String slot = b.slot.isEmpty() ? b.name : b.slot;
+        new AlertDialog.Builder(this)
+                .setTitle("恢复到「" + slot + "」？")
+                .setMessage("会覆盖该槽现有的系统镜像与 userdata，不可撤销。\n"
+                        + "备份大小：" + DsuManager.fmtBytes(b.kb * 1024))
+                .setNegativeButton("取消", null)
+                .setPositiveButton("覆盖恢复", (d, w) -> runRestore(b, slot))
+                .show();
+    }
+
+    private void runRestore(DsuBackup.Backup b, String slot) {
+        final ProgressUi ui2 = new ProgressUi("正在恢复到 " + slot, "准备中…",
+                () -> DsuBackup.cancel());
+        io.execute(() -> {
+            RootShell.Result r = DsuBackup.restore(b.dir, slot, ui2);
+            ui2.dismiss();
+            final String out = r == null ? "" : r.out;
+            ui.post(() -> {
+                if (out.contains("RESTORE_OK")) {
+                    refreshAsync();
+                    askBootAfterRestore(slot);
+                } else if (out.contains("CANCELLED")) {
+                    toast("已取消恢复");
+                } else {
+                    showBackupFail(out);
+                }
+            });
+        });
+    }
+
+    private void askBootAfterRestore(String slot) {
+        new AlertDialog.Builder(this)
+                .setTitle("恢复完成")
+                .setMessage("是否现在启用该槽并重启？")
+                .setNegativeButton("稍后", null)
+                .setPositiveButton("启用并重启", (d, w) -> rebootToDsu(slot))
+                .show();
+    }
+
+    /** 备份/恢复进度弹窗。 */
+    private final class ProgressUi implements DsuBackup.Progress {
+        private final AlertDialog dlg;
+        private final TextView status;
+        private final TextView logView;
+        private final StringBuilder logBuf = new StringBuilder();
+        private volatile boolean cancelled = false;
+
+        ProgressUi(String title, String initStatus, Runnable cancelAction) {
+            LinearLayout box = new LinearLayout(MainActivity.this);
+            box.setOrientation(LinearLayout.VERTICAL);
+            box.setPadding(dp(24), dp(20), dp(24), dp(16));
+            box.addView(text(title, 16f, P.onSurface, true));
+            status = text(initStatus, 13f, P.onSurfaceVariant, false);
+            status.setPadding(0, dp(8), 0, dp(8));
+            box.addView(status);
+            logView = text("", 10f, P.onSurfaceVariant, false);
+            logView.setTypeface(Typeface.MONOSPACE);
+            android.widget.ScrollView sv = new android.widget.ScrollView(MainActivity.this);
+            sv.addView(logView);
+            box.addView(sv, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, dp(120)));
+            dlg = new AlertDialog.Builder(MainActivity.this)
+                    .setView(box)
+                    .setNegativeButton("取消", (d, w) -> {
+                        cancelled = true;
+                        cancelAction.run();
+                    })
+                    .create();
+            dlg.setCancelable(false);
+            dlg.show();
+            if (dlg.getWindow() != null) {
+                dlg.getWindow().setBackgroundDrawable(rounded(P.surfaceContainerHigh, 24));
+            }
+        }
+
+        @Override
+        public void onLine(String line) {
+            if (line == null || line.isEmpty()) return;
+            final String l = line;
+            ui.post(() -> {
+                logBuf.append(l).append('\n');
+                if (logBuf.length() > 8000) logBuf.delete(0, logBuf.length() - 8000);
+                logView.setText(logBuf.toString());
+            });
+        }
+
+        @Override
+        public void onProgress(long doneKB, long totalKB) {
+            final String s = totalKB > 0
+                    ? "已复制 " + DsuManager.fmtBytes(doneKB * 1024)
+                        + " / " + DsuManager.fmtBytes(totalKB * 1024)
+                    : "已复制 " + DsuManager.fmtBytes(doneKB * 1024);
+            ui.post(() -> status.setText(s));
+        }
+
+        void dismiss() {
+            ui.post(() -> {
+                try {
+                    if (dlg.isShowing()) dlg.dismiss();
+                } catch (Throwable ignored) { }
+            });
+        }
+    }
+
     private boolean nativeDomain() {
         return "native".equals(AppPrefs.installDomain(this));
     }
@@ -984,7 +1209,7 @@ public class MainActivity extends Activity {
         }
         boolean detail = AppPrefs.showInstallDetails(this);
         final InstallLogger log = new InstallLogger(this, slot);
-        log.add("=== DSU Manager 2.3.1 安装开始 ===");
+        log.add("=== DSU Manager 2.4 安装开始 ===");
         log.add("slot=" + slot + " userdata=" + DsuManager.fmtBytes(userdataBytes)
                 + " domain=" + AppPrefs.installDomain(this));
 
