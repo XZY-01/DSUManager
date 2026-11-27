@@ -507,32 +507,18 @@ public class SettingsActivity extends Activity {
     private LinearLayout backupCard() {
         LinearLayout c = card(P.surfaceContainer);
         c.addView(text("DSU 备份", 16f, P.onSurface, true));
-        boolean canUse = rootMode && !inDsu;
-        String hint;
-        if (!canUse) {
-            hint = "备份 / 恢复需要在主系统并已授权 Root";
-        } else {
-            hint = "备份包含系统镜像与 userdata，保存到 Download/DSUManager/backups";
-            if (activeSlot != null && !activeSlot.isEmpty()) hint += "\n当前活动槽：" + activeSlot;
-        }
-        TextView t = text(hint, 11f, P.onSurfaceVariant, false);
+        TextView t = text("备份包含系统镜像与 userdata，保存到 Download/DSUManager/backups",
+                11f, P.onSurfaceVariant, false);
         t.setPadding(0, dp(6), 0, 0);
         c.addView(t);
 
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         actions.setPadding(0, dp(10), 0, 0);
-        TextView bk = actionButton("备份槽位", P.onPrimary, P.primary, v -> showBackupSlotPicker());
-        boolean canBackup = canUse && !state.slots.isEmpty();
-        bk.setEnabled(canBackup);
-        bk.setAlpha(canBackup ? 1f : 0.5f);
-        actions.addView(bk);
+        actions.addView(actionButton("备份槽位", P.onPrimary, P.primary, v -> showBackupSlotPicker()));
         actions.addView(gap(dp(8)));
-        TextView rs = actionButton("恢复备份", P.onPrimaryContainer, P.primaryContainer,
-                v -> showRestorePicker());
-        rs.setEnabled(canUse);
-        rs.setAlpha(canUse ? 1f : 0.5f);
-        actions.addView(rs);
+        actions.addView(actionButton("恢复备份", P.onPrimaryContainer, P.primaryContainer,
+                v -> showRestorePicker()));
         c.addView(actions);
         return c;
     }
@@ -548,21 +534,32 @@ public class SettingsActivity extends Activity {
     }
 
     private void showBackupSlotPicker() {
-        if (!rootMode) { toast("需要 Root 权限"); return; }
-        if (inDsu) { toast("请在主系统中备份"); return; }
-        if (state.slots.isEmpty()) { toast("没有可备份的槽位"); return; }
-        String[] items = new String[state.slots.size()];
-        for (int i = 0; i < state.slots.size(); i++) {
-            DsuManager.Slot s = state.slots.get(i);
-            items[i] = s.name
-                    + (s.name.equals(activeSlot) ? "（活动中）" : "")
-                    + "　·　" + DsuManager.fmtBytes(s.totalKB * 1024);
-        }
-        new AlertDialog.Builder(this)
-                .setTitle("选择要备份的槽位")
-                .setItems(items, (d, which) -> confirmBackup(state.slots.get(which).name))
-                .setNegativeButton("取消", null)
-                .show();
+        io.execute(() -> {
+            if (!rootNow()) { ui.post(() -> toast("需要 Root 权限")); return; }
+            if (EnvDetector.isDsu()) { ui.post(() -> toast("请在主系统中备份")); return; }
+            final DsuManager.State st = DsuManager.load();
+            if (st.slots.isEmpty()) { ui.post(() -> toast("没有可备份的槽位")); return; }
+            ui.post(() -> {
+                String[] items = new String[st.slots.size()];
+                for (int i = 0; i < st.slots.size(); i++) {
+                    DsuManager.Slot s = st.slots.get(i);
+                    items[i] = s.name
+                            + (s.name.equals(st.activeSlot) ? "（活动中）" : "")
+                            + "　·　" + DsuManager.fmtBytes(s.totalKB * 1024);
+                }
+                new AlertDialog.Builder(this)
+                        .setTitle("选择要备份的槽位")
+                        .setItems(items, (d, which) -> confirmBackup(st.slots.get(which).name))
+                        .setNegativeButton("取消", null)
+                        .show();
+            });
+        });
+    }
+
+    /** 点击时实时判断 root，避免界面初始化早于授权导致按钮失效。 */
+    private boolean rootNow() {
+        RootShell.Result r = RootShell.runRoot("id", 20);
+        return r != null && r.ok() && r.out.contains("uid=0");
     }
 
     private void confirmBackup(String slot) {
@@ -607,9 +604,9 @@ public class SettingsActivity extends Activity {
     }
 
     private void showRestorePicker() {
-        if (!rootMode) { toast("需要 Root 权限"); return; }
-        if (inDsu) { toast("请在主系统中恢复"); return; }
         io.execute(() -> {
+            if (!rootNow()) { ui.post(() -> toast("需要 Root 权限")); return; }
+            if (EnvDetector.isDsu()) { ui.post(() -> toast("请在主系统中恢复")); return; }
             final ArrayList<DsuBackup.Backup> list = DsuBackup.list();
             ui.post(() -> {
                 if (list.isEmpty()) { toast("还没有备份"); return; }
