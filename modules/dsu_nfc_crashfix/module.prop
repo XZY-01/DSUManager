@@ -1,6 +1,0 @@
-id=dsu_nfc_crashfix
-name=DSU 电源键延迟修复
-version=v1.0
-versionCode=1
-author=XZY
-description=修复 ColorOS 16 DSU 中 com.android.nfc 因缺少 OPLUS NFC HAL 反复崩溃导致电源键响应延迟 7-8 秒的问题
