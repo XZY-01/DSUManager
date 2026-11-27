@@ -355,13 +355,7 @@ public class MainActivity extends Activity {
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setPadding(0, dp(12), 0, 0);
         row.addView(actionButton("刷新", P.onPrimary, P.primary, v -> detectEnvAndRefresh()));
-        if (inDsu && rootMode) {
-            LinearLayout.LayoutParams gap = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            gap.leftMargin = dp(8);
-            row.addView(actionButton("重启到主系统", P.onPrimaryContainer, P.primaryContainer,
-                    v -> confirmRebootFromMainCard()), gap);
-        } else if (rootMode) {
+        if (rootMode) {
             LinearLayout.LayoutParams gap = new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             gap.leftMargin = dp(8);
@@ -932,9 +926,12 @@ public class MainActivity extends Activity {
     }
 
     private void askRebootToDsu(String slot) {
+        String msg = inDsu
+                ? "将切换到该 DSU 槽并立即重启。"
+                : "将启用该槽并立即重启，仅本次启动；下次开机会回到主系统。";
         new AlertDialog.Builder(this)
                 .setTitle("重启到 DSU「" + slot + "」？")
-                .setMessage("将启用该槽并立即重启，仅本次启动；下次开机会回到主系统。")
+                .setMessage(msg)
                 .setNegativeButton("取消", null)
                 .setPositiveButton("启用并重启", (d, w) -> rebootToDsu(slot))
                 .show();
@@ -942,12 +939,17 @@ public class MainActivity extends Activity {
 
     private void rebootToDsu(String slot) {
         io.execute(() -> {
-            RootShell.Result r = DsuManager.enableOnce(slot);
-            if (r == null || !r.ok()) {
+            RootShell.Result r = DsuManager.enableOnceFallback(slot);
+            if (r == null || !(r.ok() || r.out.contains("ENABLED_OK"))) {
                 ui.post(() -> toast("启用 DSU 失败：" + (r == null ? "无返回" : r.out.trim())));
                 return;
             }
-            DsuManager.bootMainSystem(inDsu);
+            if (inDsu) {
+                // 在 DSU 中切换槽位：不能 gsi_tool disable，否则会回到主系统
+                RootShell.runRoot("reboot", 120);
+            } else {
+                DsuManager.bootMainSystem(false);
+            }
         });
     }
 

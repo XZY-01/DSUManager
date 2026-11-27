@@ -170,6 +170,17 @@ public final class DsuManager {
         return RootShell.runRoot("gsi_tool enable -d " + slot, 120);
     }
 
+    /** 启用槽位；gsi_tool 不可用时直接写 /metadata（DSU 内切换槽位用）。 */
+    public static RootShell.Result enableOnceFallback(String slot) {
+        RootShell.Result r = enableOnce(slot);
+        if (r != null && r.ok()) return r;
+        String cmd = "M=/metadata/gsi/dsu; mkdir -p \"$M\" 2>/dev/null; "
+                + "printf '%s' '" + slot + "' > \"$M/active\" && "
+                + "printf 'ok' > \"$M/install_status\" && "
+                + ": > \"$M/one_shot_boot\" && echo ENABLED_OK";
+        return RootShell.runRoot(cmd, 60);
+    }
+
     public static RootShell.Result disable() {
         return RootShell.runRoot("gsi_tool disable", 120);
     }

@@ -926,6 +926,7 @@ public class SettingsActivity extends Activity {
                 + "· 设置页新增 DSU 备份：可选择槽位备份（含 userdata）到 Download/DSUManager/backups\n"
                 + "· 新增备份恢复：可覆盖恢复到同名槽并直接启用重启\n"
                 + "· 备份支持进度显示与取消，稀疏镜像按稀疏复制\n"
+                + "· DSU 状态卡的重启按钮在 DSU 中同样可选择目标槽位\n"
                 + "\n"
                 + "2.3.1（2026-11）\n"
                 + "· DSU 状态卡在 DSU 中恢复「重启到主系统」按钮\n"
